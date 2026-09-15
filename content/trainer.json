@@ -175,7 +175,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Máš 6 bodů a 5C",
+              "prompt": "Máš 6 bodů a 5♣",
               "correctBid": "2C",
               "rationale": "Máš fit. 6 + 13 + 5 = 24 / 3 - 6 = 2. Máme na 2. stupeň"
             }
