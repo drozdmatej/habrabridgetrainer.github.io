@@ -101,9 +101,9 @@
           ]
         },
         {
-          "id": "odpovedi-1c",
-          "title": "Odpovědi na silný tref 1♣",
-          "description": "Negativ 1♦ (0–7), pozitivy 1M/2m (8+), 1NT a speciální rozlohy 4–4–4–1.",
+          "id": "odpovedi-1m",
+          "title": "Odpovědi na zahájení 1 v lepší levné",
+          "description": "1x (7+, 4+list), 1NT (7-9), 2 v levné (5+list), 2x (12+, 5+list)",
           "passingPercent": 80,
           "questions": [
             {
@@ -119,24 +119,24 @@
                 "c": "852"
               },
               "prompt": "Partner zahájil 1♣. Co odpovíš?",
-              "correctBid": "1D",
-              "rationale": "1♦ je povinný negativ slibující 0–7 bodů. Partner nesmí pasovat."
+              "correctBid": "PASS",
+              "rationale": "Nemáš dost bodů na odpověď"
             },
             {
               "id": "q-202",
               "type": "bid_box",
               "sequence": [
-                "1C"
+                "1D"
               ],
               "hand": {
                 "s": "AK1064",
                 "h": "82",
-                "d": "KJ5",
-                "c": "763"
+                "d": "KJ53",
+                "c": "76"
               },
-              "prompt": "Máš 10 bodů a pětilist pikový. Co zadražíš?",
+              "prompt": "Co zadražíš?",
               "correctBid": "1S",
-              "rationale": "1♠ je pozitivní odpověď: 8+ bodů a alespoň pětilist pikový. Ustavuje game forcing."
+              "rationale": "1♠ 7+ bodů a alespoň pětilist pikový."
             },
             {
               "id": "q-203",
@@ -149,7 +149,7 @@
                 {
                   "id": "a",
                   "text": "8–10 bodů, 4–4–4–1, nebo 14+ bodů a vyrovnaná rozloha",
-                  "correct": true
+                  "correct": false
                 },
                 {
                   "id": "b",
@@ -158,13 +158,13 @@
                 },
                 {
                   "id": "c",
-                  "text": "8+ bodů s pětilistem srdcovým",
+                  "text": "10-12 bodů a 4+H",
                   "correct": false
                 },
                 {
                   "id": "d",
-                  "text": "Srdcový fit ke trefům",
-                  "correct": false
+                  "text": "12+ bodů a 5+H",
+                  "correct": true
                 }
               ],
               "rationale": "2♥ je umělá konvence: 8–10 bodů s rozlohou 4–4–4–1, nebo silná vyrovnaná ruka 14+ bodů."
