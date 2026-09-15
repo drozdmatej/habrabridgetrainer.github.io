@@ -174,12 +174,10 @@
               "type": "bid_box",
               "sequence": [
                 "1C",
-                "1D",
-                "1NT"
               ],
-              "prompt": "Jak se zeptáš na partnerovy drahé čtyřlisty?",
+              "prompt": "Máš 6 bodů a 5C",
               "correctBid": "2C",
-              "rationale": "Po sledu 1♣–1♦–1NT funguje 2♣ jako Stayman."
+              "rationale": "Máš fit. 6 + 13 + 5 = 24 / 3 - 6 = 2. Máme na 2. stupeň"
             }
           ]
         },
