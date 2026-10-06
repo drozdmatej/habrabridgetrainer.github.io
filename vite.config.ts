@@ -28,7 +28,8 @@ export default defineConfig({
       },
       generateBundle() {
         const content = getContent();
-        for (const issue of publicationIssues(content)) this.warn(`${issue.questionId || issue.levelId || "Obsah"}: ${issue.message}`);
+        const issues = publicationIssues(content);
+        if (issues.length) this.error(issues.map(issue => `${issue.questionId || issue.levelId || "Obsah"}: ${issue.message}`).join("\n"));
         this.emitFile({ type: "asset", fileName: "content/trainer.json", source: JSON.stringify(publishedContent(content), null, 2) });
         this.emitFile({ type: "asset", fileName: ".nojekyll", source: "" });
       },

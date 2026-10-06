@@ -10,6 +10,22 @@ html { background:var(--paper); }
 body { margin:0; color:var(--ink); background:radial-gradient(circle at 85% 0%, rgba(54,201,134,.11), transparent 28rem), var(--paper); font-family:Arial, Helvetica, sans-serif; font-size:16px; line-height:1.5; }
 button { font:inherit; }
 button:focus-visible { outline:3px solid rgba(54,201,134,.45); outline-offset:3px; }
+select:focus-visible, summary:focus-visible { outline:3px solid var(--green-dark); outline-offset:3px; }
+.system-picker { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:26px; padding:18px; background:var(--white); border:1px solid var(--line); border-radius:12px; }
+.system-picker label { font-weight:700; }
+.system-picker select { max-width:100%; min-height:44px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font:inherit; color:var(--ink); background:white; }
+.system-picker p { flex-basis:100%; margin:0; color:var(--muted); font-size:13px; }
+.system-description { color:var(--muted); max-width:850px; }
+.difficulty-badge { display:inline-block; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; color:var(--green-dark); background:#dff2e7; }
+.system-rules { background:var(--white); border:1px solid var(--line); padding:16px 20px; border-radius:12px; margin:18px 0; }
+.system-rules summary { cursor:pointer; font-weight:700; }
+.system-rules li { margin:8px 0; }
+.system-rules p { color:var(--muted); font-size:14px; }
+.storage-warning { padding:12px 16px; background:#fff0d7; border-radius:8px; }
+.result-list .text-button { display:block; min-height:44px; color:var(--green-dark); }
+.question-heading:focus { outline:none; }
+@media (max-width:600px) { .system-picker { align-items:stretch; } .system-picker label, .system-picker select { width:100%; } .quiz-topline { grid-template-columns:auto 1fr auto; gap:8px; } .quiz-topline > span { text-align:center; } .summary-card > div:last-child { flex-wrap:wrap; } }
+@media (prefers-reduced-motion:reduce) { *, *::before, *::after { transition:none!important; animation:none!important; scroll-behavior:auto!important; } }
 .app-shell { min-height:100vh; display:flex; flex-direction:column; }
 .topbar { min-height:78px; background:var(--ink); color:white; display:flex; align-items:center; justify-content:space-between; padding:12px max(22px, calc((100vw - 1180px)/2)); position:sticky; top:0; z-index:20; box-shadow:0 10px 30px rgba(11,31,34,.12); }
 .brand { border:0; background:none; color:white; display:flex; align-items:center; gap:13px; cursor:pointer; text-align:left; padding:0; }

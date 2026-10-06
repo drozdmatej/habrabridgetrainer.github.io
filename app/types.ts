@@ -30,6 +30,10 @@ export type TrainerSystem = {
   id: string;
   name: string;
   status: "active" | "draft";
+  description?: string;
+  rules?: string[];
+  difficulty?: "beginner" | "intermediate" | "advanced" | "expert";
+  sources?: string[];
   levels: TrainerLevel[];
 };
 

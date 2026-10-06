@@ -19,6 +19,9 @@ export const contentSchema = z.object({
   title: text, academyName: text,
   systems: z.array(z.object({
     id, name: text, status: z.enum(["active", "draft"]),
+    description: text.optional(), rules: z.array(text).max(50).optional(),
+    difficulty: z.enum(["beginner", "intermediate", "advanced", "expert"]).optional(),
+    sources: z.array(text).max(20).optional(),
     levels: z.array(z.object({
       id, title: text, description: text, status: z.enum(["active", "draft"]).optional(),
       passingPercent: z.number().int().min(0).max(100),

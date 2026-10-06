@@ -9,6 +9,7 @@
   "packageManager": "pnpm@11.19.0",
   "scripts": {
     "dev": "vite",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },
