@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { contentSchema, normalizeBid, publicationIssues, publishedContent, validateQuestion } from '../app/content-validation.ts';
+import { contentSchema, normalizeBid, publicationIssues, publishedContent, validateQuestion, loadPublishedContent, isHigherBid } from '../app/content-validation.ts';
 const content = contentSchema.parse(JSON.parse(readFileSync(new URL('../content/trainer.json', import.meta.url), 'utf8')));
 
 test('all published training content validates and each requested system has lessons', () => {
@@ -37,8 +37,51 @@ test('draft systems and chapters never leak into player content', () => {
   draft.systems[0].levels[1].status = 'draft';
   const published = publishedContent(draft);
   assert.equal(published.systems.length, 4);
-  assert.equal(published.systems[0].levels.length, 2);
+  assert.equal(published.systems[0].levels.length, content.systems[0].levels.length - 1);
   assert.equal(draft.systems.length, 5);
+});
+
+test('runtime rejects invalid active questions and empty active chapters with readable errors', () => {
+  const broken = structuredClone(content);
+  broken.systems[0].levels[0].questions[0].correctBid = '8NT';
+  assert.throws(() => loadPublishedContent(broken), /neplatné nebo neúplné úlohy/);
+  broken.systems[0].levels[0].status = 'draft';
+  assert.doesNotThrow(() => loadPublishedContent(broken));
+  const empty = structuredClone(content);
+  empty.systems[1].levels = [];
+  assert.throws(() => loadPublishedContent(empty), /neplatné nebo neúplné úlohy/);
+  assert.throws(() => loadPublishedContent({}), /neplatnou strukturu/);
+});
+
+test('reserved imported IDs cannot collide with progress object properties', () => {
+  for (const id of ['constructor', '__proto__', 'toString']) {
+    const imported = structuredClone(content);
+    imported.systems[0].levels[0].id = id;
+    assert.equal(contentSchema.safeParse(imported).success, false);
+  }
+});
+
+test('auction validation rejects descending or repeated contracts and a lower correct answer', () => {
+  const q = content.systems[0].levels[0].questions[0];
+  assert.ok(validateQuestion({ ...q, sequence: ['1S', '1H'], correctBid: '2C' }).some(x => x.includes('vzestupně')));
+  assert.ok(validateQuestion({ ...q, sequence: ['1C', '1C'], correctBid: '2C' }).length);
+  assert.ok(validateQuestion({ ...q, sequence: ['1S'], correctBid: '1H' }).some(x => x.includes('vyšší')));
+  assert.equal(isHigherBid('2C', ['1S', 'PASS']), true);
+  assert.equal(isHigherBid('1S', ['1S']), false);
+  assert.equal(isHigherBid('PASS', ['2NT']), true);
+});
+
+test('each system gained two substantive chapters and expert agreements remain distinct', () => {
+  for (const system of content.systems) {
+    assert.ok(system.levels.length >= 5);
+    for (const chapter of system.levels.slice(-2)) assert.ok(chapter.questions.length >= 6);
+  }
+  const questions = (id: string) => content.systems.find(s => s.id === id)!.levels.flatMap(l => l.questions);
+  assert.equal(questions('epstein-precision').find(q => q.id === 'ep-404')!.correctBid, '2S');
+  assert.equal(questions('precision-smith').find(q => q.id === 'sm-404')!.correctBid, '2S');
+  assert.match(questions('epstein-precision').find(q => q.id === 'ep-404')!.rationale, /TRF do ♣/);
+  assert.match(questions('precision-smith').find(q => q.id === 'sm-404')!.rationale, /GF, 4\+♣4\+♦/);
+  assert.match(questions('matej-mikulas').find(q => q.id === 'mm-306')!.prompt, /5♠4♣/);
 });
 
 test('bid aliases are accepted consistently and invalid bids are empty', () => {

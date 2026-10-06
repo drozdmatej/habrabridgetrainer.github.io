@@ -12,7 +12,7 @@ export function normalizeBid(input: string): string {
   return match[1] + (aliases[match[2]] || match[2]);
 }
 
-const id = z.string().trim().min(1).max(200);
+const id = z.string().trim().min(1).max(200).refine(value => !Object.hasOwn(Object.prototype, value) && value !== "prototype", "Toto ID je vyhrazené; zvol jiné.");
 const text = z.string().max(10000);
 // Drafts may be incomplete, but must always be safe to load into the editor.
 export const contentSchema = z.object({
@@ -56,7 +56,15 @@ export function validateQuestion(question: TrainerQuestion): string[] {
   if (!question.prompt.trim()) errors.push("Doplň text otázky.");
   if (!question.rationale.trim()) errors.push("Doplň vysvětlení odpovědi.");
   if (question.sequence.some((bid) => !normalizeBid(bid))) errors.push("Předchozí dražba obsahuje neplatnou hlášku.");
+  let highest = -1;
+  for (const bid of question.sequence) {
+    const rank = bidRank(bid);
+    if (rank === null) continue;
+    if (rank <= highest) { errors.push("Závazky v předchozí dražbě musí postupovat vzestupně."); break; }
+    highest = rank;
+  }
   if (question.type === "bid_box" && !normalizeBid(question.correctBid || "")) errors.push("Doplň platnou správnou hlášku (1♣–7NT, PASS, X nebo XX).");
+  if (question.type === "bid_box" && !isHigherBid(question.correctBid || "", question.sequence)) errors.push("Správná hláška musí být vyšší než předchozí závazek.");
   if (question.type === "choice") {
     const options = question.options || [];
     if (options.length < 2) errors.push("Doplň alespoň dvě možnosti odpovědi.");
@@ -78,6 +86,16 @@ export function validateQuestion(question: TrainerQuestion): string[] {
     if (total !== 13) errors.push(`Ruka má ${total} karet; musí jich mít 13. Pro otázku bez karet ruku vypni.`);
   }
   return errors;
+}
+
+export function bidRank(value: string): number | null {
+  const match = normalizeBid(value).match(/^([1-7])(C|D|H|S|NT)$/);
+  return match ? (Number(match[1]) - 1) * 5 + ["C", "D", "H", "S", "NT"].indexOf(match[2]) : null;
+}
+
+export function isHigherBid(value: string, sequence: string[]): boolean {
+  const rank = bidRank(value);
+  return rank === null || sequence.every(bid => { const previous = bidRank(bid); return previous === null || rank > previous; });
 }
 
 export type ContentIssue = { systemId?: string; levelId?: string; questionId?: string; message: string };
@@ -102,4 +120,12 @@ export function publicationIssues(content: TrainerContent): ContentIssue[] {
 
 export function publishedContent(content: TrainerContent): TrainerContent {
   return { ...content, systems: content.systems.filter((s) => s.status === "active").map((s) => ({ ...s, levels: s.levels.filter((l) => l.status !== "draft") })) };
+}
+
+export function loadPublishedContent(raw: unknown): TrainerContent {
+  const parsed = contentSchema.safeParse(raw);
+  if (!parsed.success) throw new Error("Obsah má neplatnou strukturu. Kontaktuj správce aplikace.");
+  const published = publishedContent(parsed.data);
+  if (publicationIssues(published).length) throw new Error("Výukový obsah obsahuje neplatné nebo neúplné úlohy. Kontaktuj správce aplikace.");
+  return published;
 }

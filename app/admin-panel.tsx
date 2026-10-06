@@ -59,20 +59,25 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
   function addOption() { if (!question) return; patchQuestion({ options: [...(question.options || []), { id: makeId("option"), text: "Nová možnost", correct: !(question.options || []).some((item) => item.correct) }] }); }
   function deleteOption(optionId: string) { if (!question) return; const next = (question.options || []).filter((item) => item.id !== optionId); if (next.length && !next.some((item) => item.correct)) next[0] = { ...next[0], correct: true }; patchQuestion({ options: next }); }
 
-  async function perform(action: "load" | "save" | "publish") {
+  async function perform(action: "load" | "web" | "save" | "publish") {
     if (busy.current) return;
-    if (action === "load" && dirty && !confirm("Nahradit neuložené úpravy uloženým konceptem?")) return;
+    if ((action === "load" || action === "web") && dirty && !confirm("Nahradit neuložené úpravy uloženým konceptem?")) return;
     busy.current = true;
     setStatus({ tone: "saving", text: "Zpracovávám…" });
     try {
-      if (action === "load") {
-        const raw = localStorage.getItem(draftKey);
-        const parsed = contentSchema.parse(raw ? JSON.parse(raw) : content);
+      if (action === "load" || action === "web") {
+        let raw: string | null = null;
+        try { raw = localStorage.getItem(draftKey); }
+        catch { if (action === "load") throw new Error("Úložiště není dostupné. Použij Načíst obsah webu; úpravy lze zálohovat exportem."); }
+        if (action === "web" && raw && !confirm("Načíst aktuální obsah webu? Uložený koncept zůstane zachován, dokud výslovně neuložíš nové úpravy.")) { setStatus({ tone: "idle", text: "Načtení zrušeno. Koncept zůstává zachován." }); return; }
+        let parsed: TrainerContent;
+        try { parsed = contentSchema.parse(action === "web" || !raw ? content : JSON.parse(raw)); }
+        catch { throw new Error("Uložený koncept je poškozený. Použij Načíst obsah webu. Původní koncept tím nebude smazán."); }
         storedSnapshot.current = raw;
         setDraft(parsed); setSavedSnapshot(JSON.stringify(parsed)); setLoaded(true);
         setSystemId(parsed.systems[0].id); setLevelId(parsed.systems[0].levels[0]?.id || "");
         setQuestionId(parsed.systems[0].levels[0]?.questions[0]?.id || "");
-        setSourceLabel(raw ? "Koncept z tohoto prohlížeče" : "Otázky z webu jako základ konceptu");
+        setSourceLabel(action === "load" && raw ? "Koncept z tohoto prohlížeče" : "Aktuální obsah webu jako základ konceptu");
         setStatus({ tone: "success", text: "Obsah je připravený k úpravám." });
       } else if (action === "save") {
         if (!loaded) throw new Error("Nejprve načti koncept.");
@@ -142,12 +147,12 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
             {question ? <div className="question-editor">
               <div className="editor-heading compact"><strong>Úloha {questionIndex + 1}</strong><div><button onClick={()=>moveQuestion(-1)} disabled={questionIndex===0} aria-label="Posunout úlohu nahoru"><ArrowUp size={16}/></button><button onClick={()=>moveQuestion(1)} disabled={questionIndex===level.questions.length-1} aria-label="Posunout úlohu dolů"><ArrowDown size={16}/></button><button className="danger" onClick={deleteQuestion} aria-label="Smazat úlohu"><Trash2 size={16}/></button></div></div>
               <label>Typ úlohy<select value={question.type} onChange={(event)=>{ const type=event.target.value as TrainerQuestion["type"]; patchQuestion({ type, options:type==="choice" ? question.options || [{id:makeId("option"),text:"Správná možnost",correct:true},{id:makeId("option"),text:"Nesprávná možnost",correct:false}] : undefined, correctBid:type==="bid_box" ? question.correctBid || "PASS" : undefined }); }}><option value="bid_box">Dražební deska</option><option value="choice">Výběr z možností</option></select></label>
-              <label>Otázka<textarea rows={2} value={question.prompt} onChange={(event)=>patchQuestion({prompt:event.target.value})}/></label>
+              <label>Otázka<textarea aria-label="Otázka" rows={2} value={question.prompt} onChange={(event)=>patchQuestion({prompt:event.target.value})}/></label>
               <label>Předchozí dražba <small>(odděluj čárkou)</small><input value={question.sequence.join(",")} onChange={(event)=>patchQuestion({sequence:event.target.value.trim() ? event.target.value.split(",") : []})}/></label>
               <label className="chapter-status"><Checkbox checked={!!question.hand} onCheckedChange={(checked) => patchQuestion({ hand: checked ? { s: "", h: "", d: "", c: "" } : undefined })}/> Zobrazit ruku hráče</label>
               {question.hand && <div className="hand-inputs"><span>Ruka hráče</span>{(["s","h","d","c"] as const).map((suit)=><label key={suit}><b className={`suit-${suit}`}>{suit==="s"?"♠":suit==="h"?"♥":suit==="d"?"♦":"♣"}</b><input value={question.hand?.[suit] || ""} onChange={(event)=>patchQuestion({hand:{s:question.hand?.s||"",h:question.hand?.h||"",d:question.hand?.d||"",c:question.hand?.c||"",[suit]:event.target.value.toUpperCase()}})}/></label>)}</div>}
               {question.type === "bid_box" ? <label>Správná hláška<input value={question.correctBid || ""} onChange={(event)=>patchQuestion({correctBid:event.target.value.toUpperCase()})}/></label> : <div className="option-editor"><div className="option-heading"><span>Možnosti odpovědí</span><button onClick={addOption}><Plus size={14}/> Přidat možnost</button></div>{(question.options||[]).map((option)=><div key={option.id} className="option-row"><input type="radio" name="correct-option" checked={option.correct} onChange={()=>markCorrect(option.id)} aria-label="Označit jako správnou"/><input value={option.text} onChange={(event)=>patchOption(option.id,{text:event.target.value})}/><button onClick={()=>deleteOption(option.id)} aria-label="Smazat možnost"><Trash2 size={15}/></button></div>)}</div>}
-              <label>Vysvětlení<textarea rows={3} value={question.rationale} onChange={(event)=>patchQuestion({rationale:event.target.value})}/></label>
+              <label>Vysvětlení<textarea aria-label="Vysvětlení" rows={3} value={question.rationale} onChange={(event)=>patchQuestion({rationale:event.target.value})}/></label>
               <div className="question-errors" role="status">{validateQuestion(question).length ? <><strong>Ke kontrole v této úloze</strong><ul>{validateQuestion(question).map((message) => <li key={message}>{message}</li>)}</ul></> : <p>Kontrola úlohy je v pořádku.</p>}</div>
             </div> : <p className="admin-empty">V této kapitole zatím nejsou žádné úlohy.</p>}
           </section>
@@ -173,6 +178,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
       </div>
       <div className="draft-actions">
         <button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("load")}>{loaded ? "Načíst znovu" : "Načíst koncept"}</button>
+        <button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("web")}>Načíst obsah webu</button>
         {loaded && <><button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("save")}><Save size={16}/>Uložit v prohlížeči</button>
         <button className="button button-primary" disabled={status.tone === "saving" || issues.length > 0} onClick={() => perform("publish")}>Exportovat pro web</button></>}
       </div>

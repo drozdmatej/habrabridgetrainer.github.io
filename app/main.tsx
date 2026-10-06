@@ -1,7 +1,7 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import TrainerApp from "./trainer-app";
-import { contentSchema, publishedContent } from "./content-validation";
+import { loadPublishedContent } from "./content-validation";
 import type { TrainerContent } from "./types";
 import "./globals.css";
 import "./editor.css";
@@ -14,8 +14,7 @@ function App() {
     fetch(`${import.meta.env.BASE_URL}content/trainer.json`, { signal: controller.signal, cache: "no-cache" })
       .then(async response => {
         if (!response.ok) throw new Error("Otázky se nepodařilo načíst.");
-        const parsed = publishedContent(contentSchema.parse(await response.json()));
-        if (!parsed.systems.length || !parsed.systems[0].levels.length) throw new Error("Obsah nemá žádné zveřejněné kapitoly.");
+        const parsed = loadPublishedContent(await response.json());
         setContent(parsed);
       })
       .catch(err => { if (!controller.signal.aborted) setError(err instanceof Error ? err.message : "Neplatný obsah."); });

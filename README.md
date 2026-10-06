@@ -3,7 +3,7 @@
 Výuka pro Havířovskou bridžovou akademii: základní Lepší levná, pokročilá
 Lepší levná s 2/1 GF, Epstein Precision, Precise Mr. and Mrs. Smith
 a samostatný velmi pokročilý standard Matěje a Mikuláše. Aplikace nabízí
-112 úloh v 16 kapitolách. Přesné dohody výukových variant najdete pod „Pravidla systému“.
+172 úloh v 26 kapitolách. Přesné dohody výukových variant najdete pod „Pravidla systému“.
 Obě varianty Precision a standard Matěje a Mikuláše vycházejí z dodaných
 systémových karet. Přehled podkladů a rozsahu lekcí je v [SOURCES.md](SOURCES.md).
 
@@ -13,8 +13,14 @@ Potřebujete Node.js alespoň 22.13 a pnpm 11.19.0 (viz `packageManager`).
 pnpm install --frozen-lockfile
 pnpm dev
 pnpm test
+pnpm test:browser
 pnpm build
 ```
+
+`pnpm test:browser` potřebuje nainstalovaný Chromium. Můžeš nastavit `CHROMIUM_PATH`
+na jeho spustitelný soubor. Test si spustí vlastní Vite na portu 5180 a po dokončení
+jej ukončí. Ověřuje souběžná okna, obnovu poškozených dat, editor, mobilní rozložení
+a všech deset nových kapitol včetně testů.
 
 `pnpm-workspace.yaml` povoluje instalační skript pouze závislosti esbuild.
 Sestavení spouští TypeScript a kontrolu zveřejňovaného obsahu; neplatné otázky
@@ -34,3 +40,5 @@ Postup, výsledky a chybné odpovědi se ukládají v prohlížeči pro každý 
 zvlášť. Starší postup se převádí do základní Lepší levné. Opakování chyb
 neodemkne další kapitolu: k tomu je třeba úspěšný test. Mazání dat prohlížeče
 odstraní i místní postup.
+
+Přehled nalezených vad, oprav a dalších doporučení je v [CODE_REVIEW.md](CODE_REVIEW.md).

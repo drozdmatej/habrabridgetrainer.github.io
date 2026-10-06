@@ -9,17 +9,43 @@ const progressSchema = z.object({
 }).refine(p => p.correct <= p.answered);
 export type ProgressState = z.infer<typeof progressSchema>;
 export type ProgressStore = { selectedSystemId: string; systems: Record<string, ProgressState> };
+const storeSchema = z.object({ selectedSystemId: z.string(), systems: z.record(progressSchema) });
+export type ProgressStorage = Pick<Storage, "getItem" | "setItem">;
 export const emptyProgress = (): ProgressState => ({ levels: {}, answered: 0, correct: 0, mistakes: {} });
 
 export function restoreProgress(saved: string | null, legacy: string | null, firstSystemId: string): ProgressStore {
   const initial = { selectedSystemId: firstSystemId, systems: {} };
   try {
-    if (saved) return z.object({ selectedSystemId: z.string(), systems: z.record(progressSchema) }).parse(JSON.parse(saved));
+    if (saved) return storeSchema.parse(JSON.parse(saved));
   } catch { /* Invalid storage must not prevent training. Try the legacy backup. */ }
   try {
     if (legacy) return { ...initial, systems: { [firstSystemId]: progressSchema.parse(JSON.parse(legacy)) } };
   } catch { /* Start fresh if the legacy backup is also invalid. */ }
   return initial;
+}
+
+export function readStoredProgress(storage: ProgressStorage, key: string, firstSystemId: string): { store: ProgressStore; damaged: boolean } {
+  const saved = storage.getItem(key);
+  let damaged = false;
+  if (saved !== null) {
+    try { damaged = !storeSchema.safeParse(JSON.parse(saved)).success; }
+    catch { damaged = true; }
+  }
+  return { store: restoreProgress(saved, storage.getItem(key.replace("-v2:", "-v1:")), firstSystemId), damaged };
+}
+
+export function updateStoredProgress(storage: ProgressStorage, key: string, firstSystemId: string, update: (store: ProgressStore) => ProgressStore): ProgressStore {
+  const { store, damaged } = readStoredProgress(storage, key, firstSystemId);
+  if (damaged) {
+    const raw = storage.getItem(key)!;
+    let backupKey = `${key}:damaged`;
+    // Keep earlier recovery copies too; never replace a previous backup.
+    for (let suffix = 1; storage.getItem(backupKey) !== null; suffix++) backupKey = `${key}:damaged:${suffix}`;
+    storage.setItem(backupKey, raw);
+  }
+  const next = update(store);
+  storage.setItem(key, JSON.stringify(next));
+  return next;
 }
 
 export function recordAnswer(progress: ProgressState, levelId: string, questionId: string, correct: boolean): ProgressState {
@@ -42,12 +68,16 @@ export function passesTest(score: number, total: number, passingPercent: number)
   return total > 0 && score * 100 >= total * passingPercent;
 }
 
+export function scorePercent(score: number, total: number): number {
+  return total > 0 ? Math.round(score / total * 10000) / 100 : 0;
+}
+
 export function completeLevel(progress: ProgressState, levelId: string, mode: "lesson" | "test" | "review", score: number, total: number, passingPercent: number): ProgressState {
   if (mode === "review" || !total) return progress;
   const previous = progress.levels[levelId] || { lessonCompleted: false, testPassed: false, bestScore: 0 };
   return { ...progress, levels: { ...progress.levels, [levelId]: {
     lessonCompleted: previous.lessonCompleted || mode === "lesson",
     testPassed: previous.testPassed || (mode === "test" && passesTest(score, total, passingPercent)),
-    bestScore: mode === "test" ? Math.max(previous.bestScore, Math.round(score / total * 100)) : previous.bestScore,
+    bestScore: mode === "test" ? Math.max(previous.bestScore, scorePercent(score, total)) : previous.bestScore,
   } } };
 }

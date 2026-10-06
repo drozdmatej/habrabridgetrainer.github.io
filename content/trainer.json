@@ -708,6 +708,376 @@
               "rationale": "Podle pravidel akademie zde začínáme bez transferů po 1NT i po 2NT."
             }
           ]
+        },
+        {
+          "id": "body-a-fit",
+          "title": "Body a hledání fitu",
+          "description": "Figurové body, vyrovnaná rozloha a společná trumfová barva.",
+          "passingPercent": 80,
+          "questions": [
+            {
+              "id": "ll-401",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Kolik figurových bodů má kombinace eso, král a dáma?",
+              "rationale": "Eso je za 4, král za 3 a dáma za 2 body: dohromady 9.",
+              "options": [
+                {
+                  "id": "1",
+                  "text": "9 bodů",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "7 bodů",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "10 bodů",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "12 bodů",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "ll-402",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Kolik figurových bodů má zobrazená ruka?",
+              "rationale": "♠ AK4 = 7, ♥ Q83 = 2, ♦ K742 = 3, ♣ Q65 = 2. Celkem 14 FB.",
+              "options": [
+                {
+                  "id": "4",
+                  "text": "18 bodů",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "14 bodů",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "12 bodů",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "16 bodů",
+                  "correct": false
+                }
+              ],
+              "hand": {
+                "s": "AK4",
+                "h": "Q83",
+                "d": "K742",
+                "c": "Q65"
+              }
+            },
+            {
+              "id": "ll-403",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Partner slíbil pět piků. Ty máš tři piky. Co už víš o pikovém fitu?",
+              "rationale": "Partnerův pětilist a tvůj třílist dávají nejméně osm společných trumfů.",
+              "options": [
+                {
+                  "id": "3",
+                  "text": "Partner musí mít přesně šest piků",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Počet piků nehraje roli",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Máte nejméně osm piků, tedy fit",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Máte jistě jen sedm piků",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "ll-404",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Je rozloha 5–3–3–2 vyrovnaná?",
+              "rationale": "Vyrovnané rozlohy zahrnují 4333, 4432 a 5332. Povolení konkrétního zahájení se dále řídí systémem.",
+              "options": [
+                {
+                  "id": "2",
+                  "text": "Ne, každý pětilist je nevyrovnaný",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Ne, obsahuje singleton",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Ano, ale jen s 20 body",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Ano",
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "id": "ll-405",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Partner odpověděl 1♠ a slíbil nejméně čtyři piky. Ty máš dva piky. Je osmikartový fit zaručen?",
+              "rationale": "Odpověď 1♠ může být čtyřlistá. Potřebný počet společných karet nelze předpokládat bez další informace.",
+              "options": [
+                {
+                  "id": "1",
+                  "text": "Ne, společně máte zaručeno jen šest piků",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Ano, odpověď vždy slibuje šest piků",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Ano, dva a čtyři je osm",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Fit vzniká automaticky po každé nové barvě",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "ll-406",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Které hodnocení lépe popíše potenciál trumfového závazku?",
+              "rationale": "Figurové body jsou základ. U barevného závazku k nim přidáváme informaci o fitu a rozloze.",
+              "options": [
+                {
+                  "id": "4",
+                  "text": "Jen délka první barvy zahajitele",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Body společně s fitem a rozlohou",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Pouze počet es",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Pouze nejvyšší karta v ruce",
+                  "correct": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "zavazky-a-zdvihy",
+          "title": "Závazky, zdvihy a první výnos",
+          "description": "Kolik zdvihů potřebuješ a kdo bude sehrávat.",
+          "passingPercent": 80,
+          "questions": [
+            {
+              "id": "ll-501",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Kolik zdvihů musí hlavní hráč získat pro splnění závazku 2♥?",
+              "rationale": "Ke stupni závazku přičti základních šest zdvihů. Pro 2♥ je to 6 + 2 = 8.",
+              "options": [
+                {
+                  "id": "3",
+                  "text": "6 zdvihů",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "10 zdvihů",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "8 zdvihů",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "2 zdvihy",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "ll-502",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Kolik zdvihů je potřeba pro 3NT?",
+              "rationale": "Beztrumfová hra 3NT vyžaduje 6 + 3 = 9 zdvihů.",
+              "options": [
+                {
+                  "id": "2",
+                  "text": "3 zdvihy",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "10 zdvihů",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "12 zdvihů",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "9 zdvihů",
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "id": "ll-503",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Kolik zdvihů je potřeba pro 4♠?",
+              "rationale": "Drahá hra 4♠ vyžaduje 6 + 4 = 10 zdvihů.",
+              "options": [
+                {
+                  "id": "1",
+                  "text": "10 zdvihů",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "8 zdvihů",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "9 zdvihů",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "11 zdvihů",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "ll-504",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Kdo je hlavním hráčem, když linka vydraží 4♥?",
+              "rationale": "Hlavním hráčem je ten, kdo z vítězné linky jako první dražil barvu konečného závazku.",
+              "options": [
+                {
+                  "id": "4",
+                  "text": "Hráč s nejvíce body",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Hráč linky, který srdce dražil jako první",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Vždy hráč, který řekl 4♥",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Vždy rozdávající",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "ll-505",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Kdo vynáší do prvního zdvihu?",
+              "rationale": "Úvodní výnos dělá levý soupeř hlavního hráče. Poté se vyloží karty tichého hráče.",
+              "options": [
+                {
+                  "id": "3",
+                  "text": "Soupeř po pravici hlavního hráče",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Vždy rozdávající",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Soupeř po levici hlavního hráče",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Partner hlavního hráče",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "ll-506",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Jakou úlohu má tichý hráč při běžné sehrávce?",
+              "rationale": "Partner hlavního hráče vyloží ruku a hraje z ní podle pokynů hlavního hráče, s pravidly pro tichého hráče.",
+              "options": [
+                {
+                  "id": "2",
+                  "text": "Draží v každém zdvihu",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Sám nezávisle rozhoduje o každé kartě",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Vynáší jako první vždy po dražbě",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Vyloží ruku; karty z ní volí hlavní hráč",
+                  "correct": true
+                }
+              ]
+            }
+          ]
         }
       ],
       "description": "Přirozený systém s lepší levnou a pětilistými drahými barvami. Úlohy vycházejí z pravidel uvedených zde; soupeři ve všech sledech pasují.",
@@ -722,7 +1092,8 @@
       ],
       "difficulty": "beginner",
       "sources": [
-        "HABRA 1. ročník.docx — témata 6–8, 12–15 a 19; pravidla upřesněná akademií."
+        "HABRA 1. ročník.docx — témata 6–8, 12–15 a 19; pravidla upřesněná akademií.",
+        "HABRA 1. ročník.docx — témata 2 a 3 (pravidla licitace a ohodnocení listu)."
       ]
     },
     {
@@ -754,7 +1125,7 @@
               "sequence": [
                 "1S"
               ],
-              "prompt": "Partner zahájil 1♠, soupeři pasují. Jsi nepasovaný, máš 13 bodů a pětilist srdcový, dva piky. Co odpovíš?",
+              "prompt": "1♠. Nepasovaný, bez zásahu. 13 FB, 5♥2♠. Odpověď?",
               "correctBid": "2H",
               "rationale": "Nová barva bez skoku na druhém stupni je v této situaci 2/1 GF. Pětilist srdcový ukážeš hláškou 2♥."
             },
@@ -764,7 +1135,7 @@
               "sequence": [
                 "1H"
               ],
-              "prompt": "Partner zahájil 1♥. Máš 14 bodů, pětilist trefový, dva srdce a žádný pikový čtyřlist. Jsi nepasovaný, soupeři pasují. Co odpovíš?",
+              "prompt": "1♥. Nepasovaný, bez zásahu. 14 FB, 5♣2♥, bez 4♠. Odpověď?",
               "correctBid": "2C",
               "rationale": "Přirozených 2♣ je 2/1 GF. Máš trefovou barvu a sílu na hru."
             },
@@ -807,7 +1178,7 @@
                 "1D",
                 "2C"
               ],
-              "prompt": "Je 1♦–2♣ automaticky 2/1 GF podle zde uvedeného pravidla?",
+              "prompt": "1♦–2♣: automaticky 2/1 GF?",
               "options": [
                 {
                   "id": "1",
@@ -836,7 +1207,7 @@
               "id": "adv-105",
               "type": "choice",
               "sequence": [],
-              "prompt": "Partner zahájil 1♠, ale soupeř zasáhl 2♣. Použiješ bez další dohody všechna pravidla nekonkurenčního 2/1?",
+              "prompt": "1♠–(2♣). Platí bez další dohody nekonkurenční 2/1?",
               "options": [
                 {
                   "id": "3",
@@ -904,7 +1275,7 @@
               "sequence": [
                 "1S"
               ],
-              "prompt": "Partner zahájil 1♠. Máš 8 bodů, dva piky, vyrovnanou ruku bez pětilistu. Co odpovíš ve zde zvolené variantě?",
+              "prompt": "1♠. 8 FB, 2♠, bal bez 5listu. Odpověď?",
               "correctBid": "1NT",
               "rationale": "1NT pokrývá slabší a invitační ruce bez jiné vhodné odpovědi. V této variantě je forsing na jedno kolo."
             },
@@ -975,7 +1346,7 @@
               "sequence": [
                 "1H"
               ],
-              "prompt": "Partner zahájil 1♥. Máš 7 bodů a čtyři piky. Co odpovíš?",
+              "prompt": "1♥. 7 FB, 4♠. Odpověď?",
               "correctBid": "1S",
               "rationale": "Dostupný pikový čtyřlist ukaž přirozeně na prvním stupni. 2/1 neznamená, že musíme vždy odpovědět na druhém stupni."
             },
@@ -985,7 +1356,7 @@
               "sequence": [
                 "1S"
               ],
-              "prompt": "Máš 11 bodů a pětilist trefový po partnerově 1♠. Proč v bodové úloze nepoužiješ 2♣ GF?",
+              "prompt": "1♠. 11 FB, 5♣. Proč ne 2♣ GF?",
               "options": [
                 {
                   "id": "3",
@@ -1333,7 +1704,7 @@
               "sequence": [
                 "1NT"
               ],
-              "prompt": "Partner zahájil 1NT. Jak zahájíš dotaz Puppet Stayman podle lekce třetího ročníku?",
+              "prompt": "1NT. Jak zahájíš dotaz Puppet Stayman podle lekce třetího ročníku?",
               "correctBid": "3C",
               "rationale": "Puppet Stayman je hláška 3♣. Zahajitel dále rozlišuje drahý pětilist a jeho nepřítomnost."
             },
@@ -1382,11 +1753,344 @@
               "rationale": "Smolen ukazuje 5–4 na drahých obráceně: na třetím stupni dražíš čtyřlist, tedy srdce. Piky jsou pětilist."
             }
           ]
+        },
+        {
+          "id": "puppet-po-2nt",
+          "title": "Puppet a transfery po 2NT",
+          "description": "Dohody z třetího ročníku HABRA: pětilist, čtyřlist a přijetí TRF.",
+          "passingPercent": 80,
+          "questions": [
+            {
+              "id": "adv-501",
+              "type": "bid_box",
+              "sequence": [
+                "2NT"
+              ],
+              "prompt": "2NT. Puppet Stayman?",
+              "correctBid": "3C",
+              "rationale": "3♣ = Puppet Stayman. Podklad HABRA, 3. ročník, lekce 3."
+            },
+            {
+              "id": "adv-502",
+              "type": "bid_box",
+              "sequence": [
+                "2NT",
+                "3C"
+              ],
+              "prompt": "2NT–3♣. Zahajitel má 5♥. Odpověď?",
+              "correctBid": "3H",
+              "rationale": "3♥ = 5♥. S drahým 5listem odpoví zahajitel přímo v jeho barvě."
+            },
+            {
+              "id": "adv-503",
+              "type": "bid_box",
+              "sequence": [
+                "2NT",
+                "3C"
+              ],
+              "prompt": "2NT–3♣. Zahajitel má 5♠. Odpověď?",
+              "correctBid": "3S",
+              "rationale": "3♠ = 5♠."
+            },
+            {
+              "id": "adv-504",
+              "type": "choice",
+              "sequence": [
+                "2NT",
+                "3C",
+                "3D"
+              ],
+              "prompt": "Puppet: význam 3♦?",
+              "rationale": "3♦ popírá drahý 5list. V navazujícím hledání drahého 4listu se čtyřlisty ukazují obráceně.",
+              "options": [
+                {
+                  "id": "1",
+                  "text": "Bez drahého 5listu",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Přirozených 5+♦",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "TRF do ♥",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Přesně 5♠",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "adv-505",
+              "type": "choice",
+              "sequence": [
+                "2NT",
+                "3D"
+              ],
+              "prompt": "Po 2NT–3♦ je 3♦ TRF do ♥. Přijetí podle HABRA bez fitu?",
+              "rationale": "Podklad rozlišuje přijetí TRF s fitem v drahé barvě a 3NT bez fitu.",
+              "options": [
+                {
+                  "id": "4",
+                  "text": "PAS",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "3NT",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Vždy 3♥",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "4♥",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "adv-506",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Puppet po 3♦: proč ukazovat drahý 4list obráceně?",
+              "rationale": "Obrácený popis umožní, aby drahou barvu jako první dražil silný zahajitel. Rozlišuj 4list a 5list.",
+              "options": [
+                {
+                  "id": "3",
+                  "text": "Aby odpovídající popřel GF",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Aby se zrušil NT rozsah",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Aby případný drahý závazek hrál zahajitel",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Aby se vždy hrála levná barva",
+                  "correct": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "revers-a-opakovani",
+          "title": "Revers a negativní opakování",
+          "description": "Navazující téma druhého ročníku: informace z použité i vynechané hlášky.",
+          "passingPercent": 80,
+          "questions": [
+            {
+              "id": "adv-601",
+              "type": "choice",
+              "sequence": [
+                "1C",
+                "1S",
+                "2H"
+              ],
+              "prompt": "1♣–1♠–2♥: revers?",
+              "rationale": "Nová vyšší barva na 2. stupni nutí partnera při návratu do první barvy na 3. stupeň.",
+              "options": [
+                {
+                  "id": "2",
+                  "text": "Ne, jednoduché opakování ♣",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Ne, zvýšení partnerovy barvy",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Vždy slabý blok",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Ano",
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "id": "adv-602",
+              "type": "choice",
+              "sequence": [
+                "1D",
+                "1S",
+                "2C"
+              ],
+              "prompt": "1♦–1♠–2♣: revers?",
+              "rationale": "2♣ je nižší barva než ♦. Partner se může vrátit do 2♦.",
+              "options": [
+                {
+                  "id": "1",
+                  "text": "Ne",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Ano, každá nová barva na 2. stupni je revers",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Ano, protože ♣ jsou levná",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Vždy GF",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "adv-603",
+              "type": "choice",
+              "sequence": [
+                "1C",
+                "1H",
+                "1S"
+              ],
+              "prompt": "1♣–1♥–1♠: co ukazuje 1♠?",
+              "rationale": "Pikový 4list lze ukázat na 1. stupni. Nejde o revers.",
+              "options": [
+                {
+                  "id": "4",
+                  "text": "Přesně 4–4 na levných",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Přirozený pikový 4list",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Pikový 6list a slabost",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Umělý dotaz na ♦",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "adv-604",
+              "type": "choice",
+              "sequence": [
+                "1C",
+                "1H",
+                "2C"
+              ],
+              "prompt": "1♣–1♥–2♣: co při přirozené dražbě obvykle vyplývá z vynechání 1♠?",
+              "rationale": "Dražbu čteme i negativně: dostupný 4list by se obvykle dražil. Závěr je systémový, ne univerzální pro jiné varianty.",
+              "options": [
+                {
+                  "id": "3",
+                  "text": "Má jistě srdcový fit",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Má jistě 22+ FB",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Zahajitel neukázal dostupný pikový 4list",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Má jistě 5♠",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "adv-605",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "Proč nedražit revers s pouhým minimem?",
+              "rationale": "Revers vyžaduje silnější list. Legální hláška nemusí být správným popisem ruky.",
+              "options": [
+                {
+                  "id": "2",
+                  "text": "Revers je nelegální hláška",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Partner vždy drží 0 bodů",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Každý revers slibuje šikenu",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Nadhodnotil by sílu a vytlačil partnera příliš vysoko",
+                  "correct": true
+                }
+              ]
+            },
+            {
+              "id": "adv-606",
+              "type": "choice",
+              "sequence": [],
+              "prompt": "F na jedno kolo vs. GF: rozdíl?",
+              "rationale": "Rozlišuj povinnost jedné odpovědi od závazku pokračovat alespoň do hry.",
+              "options": [
+                {
+                  "id": "1",
+                  "text": "F vyžaduje další odpověď; GF zavazuje do hry",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Obojí lze ihned pasovat",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "F vždy slibuje slem; GF minimum",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Význam je totožný",
+                  "correct": false
+                }
+              ]
+            }
+          ]
         }
       ],
       "difficulty": "intermediate",
       "sources": [
-        "HABRA 3. ročník.docx — lekce 2, 3, 10 a 11; uvedené výukové dohody 2/1."
+        "HABRA 3. ročník.docx — lekce 2, 3, 10 a 11; uvedené výukové dohody 2/1.",
+        "HABRA 2. ročník.docx — téma 4 (negativní opakování a revers); HABRA 3. ročník, téma 3 (Puppet po 2NT)."
       ]
     },
     {
@@ -1395,7 +2099,8 @@
       "difficulty": "advanced",
       "status": "active",
       "sources": [
-        "Epstein precision.docx — Přehled zahájení, Odpovědi na zahájení 1♣, Odpovědi na zahájení 1♦."
+        "Epstein precision.docx — Přehled zahájení, Odpovědi na zahájení 1♣, Odpovědi na zahájení 1♦.",
+        "Epstein precision.docx — Odpovědi na zahájení 1NT a 2♣."
       ],
       "description": "Samostatná varianta Precision podle dodané systémové karty. Přirozené odpovědi na silný tref, zvláštní 1♦ a umělé odpovědi se učí odděleně od Smithovy varianty.",
       "rules": [
@@ -1419,7 +2124,7 @@
               "id": "ep-101",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 17 FB a vyrovnanou ruku. Jak zahájíš v Epstein Precision?",
+              "prompt": "17 FB , bal. Zahájení?",
               "correctBid": "1C",
               "rationale": "16+ FB patří do silného 1♣ bez ohledu na trefovou délku. 1NT má běžně 13–15 FB."
             },
@@ -1427,7 +2132,7 @@
               "id": "ep-102",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 12 FB, pětilist pikový a rozlohu 5332. Jak zahájíš?",
+              "prompt": "12 FB, 5♠, 5332. Zahájení?",
               "correctBid": "1S",
               "rationale": "Omezené 1♠ slibuje běžně 11–15 FB a pětilist. Ruka nespadá do síly 1NT."
             },
@@ -1464,7 +2169,7 @@
               "id": "ep-104",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 14 FB, vyrovnanou ruku bez drahého pětilistu. Co zahájíš?",
+              "prompt": "14 FB, bal, bez M5. Zahájení?",
               "correctBid": "1NT",
               "rationale": "Zdejší 1NT ukazuje běžně 13–15 FB, vyrovnanou rozlohu a nemá drahý pětilist."
             },
@@ -1472,7 +2177,7 @@
               "id": "ep-105",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 12 FB, šest trefů a žádný drahý čtyřlist. Jak zahájíš?",
+              "prompt": "12 FB, 6♣, bez M4. Zahájení?",
               "correctBid": "2C",
               "rationale": "Omezené 2♣ může být se šestilistem trefovým i bez drahého čtyřlistu."
             },
@@ -1480,7 +2185,7 @@
               "id": "ep-106",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 11 FB, pět trefů a pět kár. Jak ukážeš obě levné zahájením?",
+              "prompt": "11 FB, 5♣5♦. Zahájení?",
               "correctBid": "2NT",
               "rationale": "Zahájení 2NT je v této kartě 10–13 FB a alespoň 5–5 na levných; není silné vyrovnané."
             }
@@ -1498,7 +2203,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 5 FB bez kombinace A+K. Co odpovíš?",
+              "prompt": "1♣. 5 FB bez kombinace A+K. Odpověď?",
               "correctBid": "1D",
               "rationale": "1♦ je umělá negativní odpověď. Neukazuje károvou délku."
             },
@@ -1508,7 +2213,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 9 FB a pětilist srdcový, žádný další pětilist. Co odpovíš?",
+              "prompt": "1♣. 9 FB, 5♥, bez druhého 5listu. Odpověď?",
               "correctBid": "1H",
               "rationale": "V Epstein Precision je odpověď 1♥ přirozená, s 8+ FB a pětilistem srdcovým, GF."
             },
@@ -1518,7 +2223,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 9 FB a pětilist pikový, žádný další pětilist. Co odpovíš?",
+              "prompt": "1♣. 9 FB, 5♠, bez druhého 5listu. Odpověď?",
               "correctBid": "1S",
               "rationale": "Epstein používá přirozené 1♠. Nepřenášej sem obrácené odpovědi ze Smithovy varianty."
             },
@@ -1528,7 +2233,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 12 FB a vyrovnanou ruku bez pětilistu. Co odpovíš?",
+              "prompt": "1♣. 12 FB , bal bez 5listu. Odpověď?",
               "correctBid": "1NT",
               "rationale": "Přímá odpověď 1NT ukazuje 11–13 FB a vyrovnanou ruku; je GF."
             },
@@ -1538,7 +2243,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 9 FB a vyrovnanou ruku 4333. Jak odpovíš?",
+              "prompt": "1♣. 9 FB , bal 4333. Odpověď?",
               "correctBid": "2NT",
               "rationale": "8–10 FB s vyrovnanou rukou je v Epsteinově kartě přímých 2NT."
             },
@@ -1548,7 +2253,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 15 FB a vyrovnanou ruku 4333. Jak zahájíš popis silné vyrovnané ruky?",
+              "prompt": "1♣. 15 FB , bal 4333. Odpověď?",
               "correctBid": "2H",
               "rationale": "Umělé 2♥ obsahuje mimo jiné 14+ FB s vyrovnanou rozlohou. Partner může pokračovat dotazem 2♠."
             }
@@ -1566,7 +2271,7 @@
               "sequence": [
                 "1D"
               ],
-              "prompt": "Partner zahájil 1♦. Máš 9 FB, pět piků a pět srdcí. Jak odpovíš podle Epsteinovy karty?",
+              "prompt": "1♦. 9 FB, 5♠5♥. Odpověď?",
               "correctBid": "2D",
               "rationale": "Umělých 2♦ ukazuje 7–12 FB a 5–5 na drahých. Tato odpověď byla chybně zařazena do základní Lepší levné."
             },
@@ -1576,7 +2281,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 9 FB a rozlohu 4441. Jak odpovíš?",
+              "prompt": "1♣. 9 FB a rozlohu 4441. Odpověď?",
               "correctBid": "2H",
               "rationale": "Umělé 2♥ je mimo jiné 8–10 FB s rozlohou 4441."
             },
@@ -1586,7 +2291,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 12 FB a rozlohu 4441. Jak odpovíš?",
+              "prompt": "1♣. 12 FB a rozlohu 4441. Odpověď?",
               "correctBid": "2S",
               "rationale": "2♠ ukazuje 11+ FB s libovolnou rozlohou 4441. Neslibuje pikovou barvu."
             },
@@ -1597,7 +2302,7 @@
                 "1C",
                 "1D"
               ],
-              "prompt": "Zahájil jsi 1♣, partner odpověděl negativně 1♦. Máš 18 FB a vyrovnanou ruku bez drahého pětilistu. Co rebiduješ?",
+              "prompt": "1♣–1♦. Zahajitel 18 FB, bal bez M5. Rebid?",
               "correctBid": "1NT",
               "rationale": "Po negativní odpovědi ukazuje rebid 1NT 16–20 FB bez drahého pětilistu."
             },
@@ -1607,7 +2312,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Máš jen eso a krále, tedy 7 běžných figurových bodů. Patří tato kombinace po 1♣ do negativní odpovědi?",
+              "prompt": "1♣. Jen A+K (7 běžných FB). Negativní 1♦?",
               "options": [
                 {
                   "id": "3",
@@ -1664,6 +2369,170 @@
               "rationale": "Přirozené srdce se ukazují odpovědí 1♥; 2♥ má v této variantě jiný význam."
             }
           ]
+        },
+        {
+          "id": "po-1nt",
+          "title": "Odpovědi po 1NT",
+          "description": "Stayman, drahé a levné transfery podle Epsteinovy karty.",
+          "passingPercent": 80,
+          "questions": [
+            {
+              "id": "ep-401",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. Dotaz na M4 se slibovaným drahým 4listem?",
+              "correctBid": "2C",
+              "rationale": "2♣ = Stayman; v této kartě slibuje M4."
+            },
+            {
+              "id": "ep-402",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. TRF s 5+♥?",
+              "correctBid": "2D",
+              "rationale": "2♦ = TRF do ♥, 5+list."
+            },
+            {
+              "id": "ep-403",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. TRF s 5+♠?",
+              "correctBid": "2H",
+              "rationale": "2♥ = TRF do ♠, 5+list."
+            },
+            {
+              "id": "ep-404",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. TRF s 6+♣?",
+              "correctBid": "2S",
+              "rationale": "2♠ = TRF do ♣, 6+list."
+            },
+            {
+              "id": "ep-405",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. TRF s 6+♦?",
+              "correctBid": "3C",
+              "rationale": "3♣ = TRF do ♦, 6+list. Nejde o Puppet."
+            },
+            {
+              "id": "ep-406",
+              "type": "bid_box",
+              "sequence": [
+                "1NT",
+                "2C"
+              ],
+              "prompt": "1NT–2♣. Bez M4. Rebid?",
+              "correctBid": "2D",
+              "rationale": "2♦ = bez drahého 4listu."
+            }
+          ]
+        },
+        {
+          "id": "po-2c",
+          "title": "Omezené 2♣ a relay",
+          "description": "Relé 2♦, druhá barva a rozlišení minima a maxima.",
+          "passingPercent": 80,
+          "questions": [
+            {
+              "id": "ep-501",
+              "type": "bid_box",
+              "sequence": [
+                "2C"
+              ],
+              "prompt": "2♣. Základní relay?",
+              "correctBid": "2D",
+              "rationale": "2♦ = relay. Zahajitel upřesní rozlohu a sílu."
+            },
+            {
+              "id": "ep-502",
+              "type": "bid_box",
+              "sequence": [
+                "2C",
+                "2D"
+              ],
+              "prompt": "2♣–2♦. Zahajitel 5+♣4♥, bez 4♠. Rebid?",
+              "correctBid": "2H",
+              "rationale": "2♥ = 5+♣4♥."
+            },
+            {
+              "id": "ep-503",
+              "type": "bid_box",
+              "sequence": [
+                "2C",
+                "2D"
+              ],
+              "prompt": "2♣–2♦. Zahajitel 5+♣4♠, bez 4♥. Rebid?",
+              "correctBid": "2S",
+              "rationale": "2♠ = 5+♣4♠."
+            },
+            {
+              "id": "ep-504",
+              "type": "bid_box",
+              "sequence": [
+                "2C",
+                "2D"
+              ],
+              "prompt": "2♣–2♦. Zahajitel 14–15 FB, 6+♣ bez M4. Rebid?",
+              "correctBid": "2NT",
+              "rationale": "2NT = 14–15 FB, 6+♣, maximum."
+            },
+            {
+              "id": "ep-505",
+              "type": "bid_box",
+              "sequence": [
+                "2C",
+                "2D"
+              ],
+              "prompt": "2♣–2♦. Zahajitel 11–13 FB, 6+♣ bez M4. Rebid?",
+              "correctBid": "3C",
+              "rationale": "3♣ = 11–13 FB, 6+♣, minimum."
+            },
+            {
+              "id": "ep-506",
+              "type": "choice",
+              "sequence": [
+                "2C",
+                "2D",
+                "2H"
+              ],
+              "prompt": "2♣–2♦–2♥: 2♥ slibuje 5♥?",
+              "rationale": "2♥ je přirozený popis druhé barvy zahajitele, ale pouze 4listu. Nezaměňuj s přímou odpovědí 2♥ na jiné zahájení.",
+              "options": [
+                {
+                  "id": "4",
+                  "text": "Ne, jde o TRF do ♠",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Ne, ukazuje 5+♣4♥",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Ano, vždy 5♥",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Ano, 6♥ a GF",
+                  "correct": false
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1673,7 +2542,8 @@
       "difficulty": "advanced",
       "status": "active",
       "sources": [
-        "Precise Mr. and Mrs. Smith.docx — Openings, 1♣ Opening a 1♣–1♦."
+        "Precise Mr. and Mrs. Smith.docx — Openings, 1♣ Opening a 1♣–1♦.",
+        "Precise Mr. and Mrs. Smith.docx — 1NT Opening a 2♣ opening."
       ],
       "description": "Samostatná varianta silného trefu z dodané karty. Odpovědi v drahých barvách po 1♣ jsou obrácené; nepoužívej zde přirozené odpovědi Epstein Precision.",
       "rules": [
@@ -1696,7 +2566,7 @@
               "id": "sm-101",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 17 bodů a vyrovnanou ruku. Jak zahájíš?",
+              "prompt": "17 FB , bal. Zahájení?",
               "correctBid": "1C",
               "rationale": "Zahájení 1♣ je silné, od 16 bodů, a nevyžaduje trefovou délku."
             },
@@ -1704,7 +2574,7 @@
               "id": "sm-102",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 11 bodů, čtyři kára, pět trefů, tři piky a singleton srdcový. Jak zahájíš?",
+              "prompt": "11 FB, 3♠1♥4♦5♣. Zahájení?",
               "correctBid": "1D",
               "rationale": "Karta dovoluje 1♦ s rozlohou 4♦5♣. Nevyžaduje vždy kárový pětilist."
             },
@@ -1712,7 +2582,7 @@
               "id": "sm-103",
               "type": "choice",
               "sequence": [],
-              "prompt": "Jaký rozdíl u 1M připouští třetí a čtvrtá pozice?",
+              "prompt": "1M na 3./4. pozici: jaká výjimka?",
               "options": [
                 {
                   "id": "1",
@@ -1741,7 +2611,7 @@
               "id": "sm-104",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 14 bodů a vyrovnanou ruku 4333. Jak zahájíš?",
+              "prompt": "14 FB , bal 4333. Zahájení?",
               "correctBid": "1NT",
               "rationale": "Běžný rozsah zahájení 1NT je 13–15 bodů."
             },
@@ -1749,7 +2619,7 @@
               "id": "sm-105",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 9 bodů, pět srdcí a pět trefů. Jak zahájíš podle této karty?",
+              "prompt": "9 FB, 5♥5♣. Zahájení?",
               "correctBid": "2H",
               "rationale": "2♥ ukazuje 7–12, 5+ srdcí a 5+ v některé levné barvě. Není to jen běžný slabý srdcový šestilist."
             },
@@ -1757,7 +2627,7 @@
               "id": "sm-106",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 11 bodů, pět trefů a pět kár. Jak zahájíš?",
+              "prompt": "11 FB, 5♣5♦. Zahájení?",
               "correctBid": "2NT",
               "rationale": "Zahájení 2NT slibuje 10–13 a alespoň 5–5 na levných."
             }
@@ -1775,7 +2645,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 9 bodů a pětilist pikový, bez dalšího pětilistu. Jak odpovíš?",
+              "prompt": "1♣. 9 FB, 5♠, bez druhého 5listu. Odpověď?",
               "correctBid": "1H",
               "rationale": "Ve Smithově variantě 1♥ ukazuje mimo jiné 8+ a pětilist pikový. Odpovědi drahými jsou obrácené."
             },
@@ -1785,7 +2655,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 9 bodů a pětilist srdcový, bez dalšího pětilistu. Jak odpovíš?",
+              "prompt": "1♣. 9 FB, 5♥, bez druhého 5listu. Odpověď?",
               "correctBid": "1S",
               "rationale": "1♠ ukazuje 8+ a pětilist srdcový. Nepoužij přirozenou odpověď z Epsteinovy varianty."
             },
@@ -1795,7 +2665,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 9 bodů a vyrovnanou ruku 4333. Co odpovíš?",
+              "prompt": "1♣. 9 FB , bal 4333. Odpověď?",
               "correctBid": "1H",
               "rationale": "1♥ zahrnuje i vyrovnanou ruku 8–10 bodů. Odpověď 2NT by zde ukazovala obě levné."
             },
@@ -1805,7 +2675,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 15 bodů a vyrovnanou ruku 4333. Co odpovíš?",
+              "prompt": "1♣. 15 FB , bal 4333. Odpověď?",
               "correctBid": "1H",
               "rationale": "Odpověď 1♥ zahrnuje také 14+ vyrovnaně. Nepřenášej sem Epsteinovo umělé 2♥."
             },
@@ -1815,7 +2685,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 12 bodů a vyrovnanou ruku bez pětilistu. Co odpovíš?",
+              "prompt": "1♣. 12 FB , bal bez 5listu. Odpověď?",
               "correctBid": "1NT",
               "rationale": "11–13 vyrovnaně se odpovídá 1NT. Tato odpověď je společná oběma dodaným variantám."
             },
@@ -1825,7 +2695,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 5 bodů bez A+K. Jak odpovíš?",
+              "prompt": "1♣. 5 FB bez A+K. Odpověď?",
               "correctBid": "1D",
               "rationale": "Negativní 1♦ ukazuje 0–7 a neukazuje kára. Karta vylučuje kombinaci A+K."
             }
@@ -1843,7 +2713,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 9 bodů a rozlohu 4441. Co odpovíš?",
+              "prompt": "1♣. 9 FB a rozlohu 4441. Odpověď?",
               "correctBid": "2S",
               "rationale": "2♠ je 8–10 bodů a libovolná 4441, nikoli přirozené piky."
             },
@@ -1853,7 +2723,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 12 bodů a rozlohu 4441. Co odpovíš?",
+              "prompt": "1♣. 12 FB a rozlohu 4441. Odpověď?",
               "correctBid": "2H",
               "rationale": "2♥ ukazuje 11+ s libovolnou 4441, případně silné obě levné."
             },
@@ -1863,7 +2733,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 9 bodů a pět trefů i pět kár. Co odpovíš?",
+              "prompt": "1♣. 9 FB, 5♣5♦. Odpověď?",
               "correctBid": "2NT",
               "rationale": "2NT je 8–10 bodů a 5+5+ na levných, ne vyrovnaná ruka."
             },
@@ -1873,7 +2743,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 12 bodů a pět trefů i pět kár. Co odpovíš?",
+              "prompt": "1♣. 12 FB, 5♣5♦. Odpověď?",
               "correctBid": "2H",
               "rationale": "11+ s alespoň 5–5 na levných patří do odpovědi 2♥."
             },
@@ -1915,9 +2785,193 @@
                 "1C",
                 "1D"
               ],
-              "prompt": "Zahájil jsi 1♣, partner odpověděl negativně 1♦. Máš 22 bodů a vyrovnanou ruku. Co rebiduješ?",
+              "prompt": "1♣–1♦. Zahajitel 22 FB, bal. Rebid?",
               "correctBid": "2NT",
               "rationale": "Po negativní odpovědi ukazuje rebid 2NT 21–23 bodů, vyrovnaně nebo 5m4m podle karty."
+            }
+          ]
+        },
+        {
+          "id": "po-1nt",
+          "title": "NT ve Smithově variantě",
+          "description": "Transfery a GF obě levné; odlišnost od Epsteinových 2♠.",
+          "passingPercent": 80,
+          "questions": [
+            {
+              "id": "sm-401",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. Stayman?",
+              "correctBid": "2C",
+              "rationale": "2♣ = Stayman."
+            },
+            {
+              "id": "sm-402",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. TRF do ♥?",
+              "correctBid": "2D",
+              "rationale": "2♦ = TRF do ♥."
+            },
+            {
+              "id": "sm-403",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. TRF do ♠?",
+              "correctBid": "2H",
+              "rationale": "2♥ = TRF do ♠."
+            },
+            {
+              "id": "sm-404",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. GF s 4+♣4+♦. Odpověď?",
+              "correctBid": "2S",
+              "rationale": "2♠ = GF, 4+♣4+♦. U Epsteina 2♠ znamená TRF do ♣; zde nikoli."
+            },
+            {
+              "id": "sm-405",
+              "type": "choice",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. Význam 3♣?",
+              "rationale": "Smithova karta: 3♣ = transfer se slemovým zájmem v ♥.",
+              "options": [
+                {
+                  "id": "3",
+                  "text": "Puppet Stayman",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Přirozená slabá ♣",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "TRF, S/T v ♥",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Slabý TRF do ♦",
+                  "correct": false
+                }
+              ]
+            },
+            {
+              "id": "sm-406",
+              "type": "bid_box",
+              "sequence": [
+                "1NT",
+                "2C",
+                "2D"
+              ],
+              "prompt": "1NT–2♣–2♦. GF s 5♠4♥. Hláška podle této karty?",
+              "correctBid": "3S",
+              "rationale": "Karta uvádí 3M = GF, 5M4oM. Zde 3♠ ukazuje 5♠4♥; nepřenášej Smolen z HABRA."
+            }
+          ]
+        },
+        {
+          "id": "po-2c",
+          "title": "Relay po omezených 2♣",
+          "description": "Dotaz, M4 a šestilisté minimum či maximum.",
+          "passingPercent": 80,
+          "questions": [
+            {
+              "id": "sm-501",
+              "type": "bid_box",
+              "sequence": [
+                "2C"
+              ],
+              "prompt": "2♣. Základní dotaz?",
+              "correctBid": "2D",
+              "rationale": "2♦ = ask."
+            },
+            {
+              "id": "sm-502",
+              "type": "bid_box",
+              "sequence": [
+                "2C",
+                "2D"
+              ],
+              "prompt": "2♣–2♦. Zahajitel 5+♣4♥, bez 4♠. Rebid?",
+              "correctBid": "2H",
+              "rationale": "2♥ = 5+♣4♥."
+            },
+            {
+              "id": "sm-503",
+              "type": "bid_box",
+              "sequence": [
+                "2C",
+                "2D"
+              ],
+              "prompt": "2♣–2♦. Zahajitel 5+♣4♠, bez 4♥. Rebid?",
+              "correctBid": "2S",
+              "rationale": "2♠ = 5+♣4♠."
+            },
+            {
+              "id": "sm-504",
+              "type": "bid_box",
+              "sequence": [
+                "2C",
+                "2D"
+              ],
+              "prompt": "2♣–2♦. Maximum, 6+♣ bez M4. Rebid?",
+              "correctBid": "2NT",
+              "rationale": "2NT = 6+♣, maximum."
+            },
+            {
+              "id": "sm-505",
+              "type": "bid_box",
+              "sequence": [
+                "2C",
+                "2D"
+              ],
+              "prompt": "2♣–2♦. Minimum, 6+♣ bez M4. Rebid?",
+              "correctBid": "3C",
+              "rationale": "3♣ = 6+♣, minimum."
+            },
+            {
+              "id": "sm-506",
+              "type": "choice",
+              "sequence": [
+                "2C"
+              ],
+              "prompt": "2♣. Význam přímých 3♣?",
+              "rationale": "Smithova karta: 3♣ ukazuje 5♠4♥, invitační a neforsující. Nejde o přirozené zvýšení.",
+              "options": [
+                {
+                  "id": "2",
+                  "text": "Jednoduché zvýšení ♣",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "GF s vyrovnanou rukou",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "TRF do ♦",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "5♠4♥, INV, NF",
+                  "correct": true
+                }
+              ]
             }
           ]
         }
@@ -1929,13 +2983,14 @@
       "difficulty": "expert",
       "status": "active",
       "sources": [
-        "Mikulas a Matej sys (1).pdf — Openings, 1♣ Opening, 1♣–1R a 1M opening."
+        "Mikulas a Matej sys (1).pdf — Openings, 1♣ Opening, 1♣–1R a 1M opening.",
+        "Mikulas a Matej sys (1).pdf — 1NT Opening, 2♠ Opening a 1♣–1R."
       ],
       "description": "Velmi pokročilý samostatný standard s transferovými odpověďmi. Vlastní rozsahy NT podle pozice a stavu her a víceznačná zahájení se nemíchají s Lepší levnou.",
       "rules": [
         "1♣: 11,5–22 a 2+ trefy (přirozené / vyrovnané / =4414). 1♦: 11,5–22 a nevyrovnaný kárový pětilist, nebo 4+ kára s 4441. Drahá zahájení: 11,5–22 a pětilist.",
         "1NT: 14–16 na první a druhé pozici a na třetí mimo hru; 15–17 na třetí ve hře a vždy na čtvrté pozici. Karta dovoluje některé nestandardní rozlohy.",
-        "2♣: 20–21 vyrovnaně / 24+ vyrovnaně / GF s piky. 2♦: dobrý slabý šestilist srdcový 8–11 nebo GF s levnou. 2♥: dobrý slabý šestilist pikový 8–11 nebo GF se srdci. 2♠: 0–9 a 5+ piků.",
+        "2♣: 20–21 vyrovnaně / 24+ vyrovnaně / GF s piky. 2♦: dobrý slabý šestilist srdcový 8–11 nebo GF s levnou. 2♥: dobrý slabý šestilist pikový 8–11 nebo GF se srdci. 2♠ podle detailní kapitoly: 0–9, 5♠4+m, nebo 0–7 se 6+♠.",
         "2NT: 22–23 (polo)vyrovnaně. Nepřenášej sem běžných 20–21 z Lepší levné.",
         "Po 1♣: 1♦ transfer do srdcí, 1♥ transfer do piků; 0+ s pětilistem nebo 5+ s pouze čtyřlistem. 1♠ transfer do NT a další uvedené varianty.",
         "Po 1♣: 2♣ GF s 5+ káry; 2♦/2♥ transfer do drahé s 6+listem a 3–6 body nebo GF. 2NT 16–18 vyrovnaně bez drahého čtyřlistu.",
@@ -1952,7 +3007,7 @@
               "id": "mm-101",
               "type": "choice",
               "sequence": [],
-              "prompt": "Jaký rozsah má zahájení 1NT na první pozici?",
+              "prompt": "1NT: rozsah na 1. pozici?",
               "options": [
                 {
                   "id": "3",
@@ -1981,7 +3036,7 @@
               "id": "mm-102",
               "type": "choice",
               "sequence": [],
-              "prompt": "Jaký rozsah má 1NT na třetí pozici, když je vaše linka ve hře?",
+              "prompt": "1NT: rozsah na 3. pozici ve hře?",
               "options": [
                 {
                   "id": "2",
@@ -2010,7 +3065,7 @@
               "id": "mm-103",
               "type": "choice",
               "sequence": [],
-              "prompt": "Jaký rozsah má 1NT na čtvrté pozici mimo hru?",
+              "prompt": "1NT: rozsah na 4. pozici mimo hru?",
               "options": [
                 {
                   "id": "1",
@@ -2039,7 +3094,7 @@
               "id": "mm-104",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 22 bodů a vyrovnanou ruku. Jak zahájíš v systému Matěje a Mikuláše?",
+              "prompt": "22 FB, bal. Zahájení?",
               "correctBid": "2NT",
               "rationale": "Zdejší 2NT je 22–23, vyrovnaně nebo polovyrovnaně. 20–21 vyrovnaně je zahrnuto v 2♣."
             },
@@ -2115,7 +3170,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 7 bodů a pětilist srdcový, tři piky. Jak ukážeš srdce?",
+              "prompt": "1♣. 7 FB, 5♥3♠. Odpověď?",
               "correctBid": "1D",
               "rationale": "Odpověď 1♦ je transfer do srdcí. Nejde o přirozenou károvou odpověď."
             },
@@ -2125,7 +3180,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 7 bodů a pětilist pikový, tři srdce. Jak ukážeš piky?",
+              "prompt": "1♣. 7 FB, 5♠3♥. Odpověď?",
               "correctBid": "1H",
               "rationale": "Odpověď 1♥ je transfer do piků. Nepoužij přirozenou odpověď 1♠ z Lepší levné."
             },
@@ -2135,7 +3190,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 6 bodů a pouze čtyřlist srdcový, tři piky. Jak ukážeš srdce?",
+              "prompt": "1♣. 6 FB, 4♥3♠. Odpověď?",
               "correctBid": "1D",
               "rationale": "Transfer 1♦ může být i se čtyřlistem při 5+ bodech. Slabší pětilist má jinou bodovou hranici."
             },
@@ -2145,7 +3200,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Partner zahájil 1♣. Máš 14 bodů a pětilist kárový, bez drahého čtyřlistu. Jak odpovíš?",
+              "prompt": "1♣. 14 FB, 5♦, bez M4. Odpověď?",
               "correctBid": "2C",
               "rationale": "2♣ je GF a ukazuje 5+ kár. Hlásí se jiná barva než ukazovaná."
             },
@@ -2157,7 +3212,7 @@
                 "1D",
                 "1H"
               ],
-              "prompt": "Po 1♣–1♦ zahajitel přijme transfer hláškou 1♥. Zaručuje tím čtyři srdce?",
+              "prompt": "1♣–1♦–1♥: přijetí TRF slibuje 4♥?",
               "options": [
                 {
                   "id": "2",
@@ -2227,7 +3282,7 @@
               "sequence": [
                 "1S"
               ],
-              "prompt": "Je odpověď 1NT po 1♠ forsing v tomto systému?",
+              "prompt": "1M–1NT: F, nebo NF?",
               "options": [
                 {
                   "id": "4",
@@ -2258,7 +3313,7 @@
               "sequence": [
                 "1H"
               ],
-              "prompt": "Kolik trefů nejméně může obsahovat odpověď 2♣ GF po 1♥?",
+              "prompt": "1♥–2♣ GF: minimální délka ♣?",
               "options": [
                 {
                   "id": "3",
@@ -2289,7 +3344,7 @@
               "sequence": [
                 "1C"
               ],
-              "prompt": "Jaký pětilist ukazuje 2♣ GF po 1♣, na rozdíl od krátkého 2♣ po 1M?",
+              "prompt": "1♣–2♣ GF: jaký 5list?",
               "options": [
                 {
                   "id": "2",
@@ -2318,7 +3373,7 @@
               "id": "mm-304",
               "type": "choice",
               "sequence": [],
-              "prompt": "Jakou slabou variantu obsahuje zahájení 2♦?",
+              "prompt": "2♦: slabá varianta?",
               "options": [
                 {
                   "id": "1",
@@ -2347,7 +3402,7 @@
               "id": "mm-305",
               "type": "choice",
               "sequence": [],
-              "prompt": "Jakou slabou variantu obsahuje zahájení 2♥?",
+              "prompt": "2♥: slabá varianta?",
               "options": [
                 {
                   "id": "4",
@@ -2376,9 +3431,197 @@
               "id": "mm-306",
               "type": "bid_box",
               "sequence": [],
-              "prompt": "Máš 6 bodů a pětilist pikový. Které slabé zahájení přímo v pikách dovoluje tato karta?",
+              "prompt": "6 FB, 5♠4♣. Slabé zahájení?",
               "correctBid": "2S",
-              "rationale": "Zahájení 2♠ je 0–9 a 5+ piků. Je samostatně uvedené vedle víceznačných 2♦ a 2♥."
+              "rationale": "2♠: 0–9, 5♠4+m. Detailní oddíl 2♠ Opening doplňuje zkrácený přehled."
+            }
+          ]
+        },
+        {
+          "id": "po-1nt",
+          "title": "Pokročilé odpovědi po 1NT",
+          "description": "Rozsahový dotaz, GF ask a transferové větve této karty.",
+          "passingPercent": 80,
+          "questions": [
+            {
+              "id": "mm-401",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. Range ask / ♣ weak nebo S/T / bal INV. Odpověď?",
+              "correctBid": "2S",
+              "rationale": "2♠ obsahuje range ask a uvedené varianty. Není přirozené."
+            },
+            {
+              "id": "mm-402",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. GF ask s 4–3 na M, nikoli 4–4. Odpověď?",
+              "correctBid": "2NT",
+              "rationale": "2NT = GF ask; karta vylučuje 44M a uvádí 43M."
+            },
+            {
+              "id": "mm-403",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. TRF do ♦, weak nebo S/T. Odpověď?",
+              "correctBid": "3C",
+              "rationale": "3♣ = TRF do ♦, weak nebo S/T."
+            },
+            {
+              "id": "mm-404",
+              "type": "bid_box",
+              "sequence": [
+                "1NT"
+              ],
+              "prompt": "1NT. 5+♥. Základní TRF?",
+              "correctBid": "2D",
+              "rationale": "2♦ = TRF do ♥. Další rebidy rozlišují INV, S/T i koncový závazek."
+            },
+            {
+              "id": "mm-405",
+              "type": "bid_box",
+              "sequence": [
+                "1NT",
+                "2C"
+              ],
+              "prompt": "1NT–2♣. Bez M4. Rebid?",
+              "correctBid": "2D",
+              "rationale": "2♦ = bez M4."
+            },
+            {
+              "id": "mm-406",
+              "type": "choice",
+              "sequence": [
+                "1NT",
+                "2C",
+                "2H"
+              ],
+              "prompt": "1NT–2♣–2♥. Význam 2♠?",
+              "rationale": "Karta zde 2♠ používá se srdcovým fitem a silou nad přímé 4♥. Nejde o přirozené hledání piků.",
+              "options": [
+                {
+                  "id": "1",
+                  "text": "♥ fit, silnější než přímých 4♥",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Přirozený slabý 5list ♠",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "TRF do NT",
+                  "correct": false
+                },
+                {
+                  "id": "4",
+                  "text": "Negativní odpověď 0–7",
+                  "correct": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "rebidy-po-transferu",
+          "title": "Rebidy po transferu 1♣–1R",
+          "description": "Přijetí transferu, síla bez fitu a čtyřlistá podpora.",
+          "passingPercent": 80,
+          "questions": [
+            {
+              "id": "mm-501",
+              "type": "bid_box",
+              "sequence": [
+                "1C",
+                "1D"
+              ],
+              "prompt": "1♣–1♦ (TRF ♥). Zahajitel 12 FB, 4333 se 3♥. Rebid?",
+              "correctBid": "1H",
+              "rationale": "1♥ = 11–16, obvykle 2–3♥. Prosté přijetí není čtyřlistý fit."
+            },
+            {
+              "id": "mm-502",
+              "type": "bid_box",
+              "sequence": [
+                "1C",
+                "1H"
+              ],
+              "prompt": "1♣–1♥ (TRF ♠). Zahajitel 12 FB, 4333 se 3♠. Rebid?",
+              "correctBid": "1S",
+              "rationale": "1♠ = 11–16, 2–3♠."
+            },
+            {
+              "id": "mm-503",
+              "type": "bid_box",
+              "sequence": [
+                "1C",
+                "1D"
+              ],
+              "prompt": "1♣–1♦. Zahajitel 18 FB bal, 2♥. Rebid?",
+              "correctBid": "1NT",
+              "rationale": "1NT = 17(18)–19 bal bez podpory. Nenese stejný rozsah jako přímé zahájení 1NT."
+            },
+            {
+              "id": "mm-504",
+              "type": "bid_box",
+              "sequence": [
+                "1C",
+                "1D"
+              ],
+              "prompt": "1♣–1♦. Zahajitel 12 FB, 4♥. Rebid?",
+              "correctBid": "2H",
+              "rationale": "2♥ = 11–14, 4♥."
+            },
+            {
+              "id": "mm-505",
+              "type": "bid_box",
+              "sequence": [
+                "1C",
+                "1H"
+              ],
+              "prompt": "1♣–1♥. Zahajitel 12 FB, 4♠. Rebid?",
+              "correctBid": "2S",
+              "rationale": "2♠ = 11–14, 4♠."
+            },
+            {
+              "id": "mm-506",
+              "type": "choice",
+              "sequence": [
+                "1C",
+                "1D",
+                "1H"
+              ],
+              "prompt": "1♣–1♦–1♥. Je srdcový fit jistý?",
+              "rationale": "Fit se odvozuje od konkrétního rebidu, nikoli od samotného přijetí transferu.",
+              "options": [
+                {
+                  "id": "4",
+                  "text": "Ano, 1♥ je GF zvýšení",
+                  "correct": false
+                },
+                {
+                  "id": "1",
+                  "text": "Ne, zahajitel může mít jen 2–3♥",
+                  "correct": true
+                },
+                {
+                  "id": "2",
+                  "text": "Ano, každé přijetí TRF slibuje 4♥",
+                  "correct": false
+                },
+                {
+                  "id": "3",
+                  "text": "Ano, transfer vždy slibuje šestilist",
+                  "correct": false
+                }
+              ]
             }
           ]
         }
