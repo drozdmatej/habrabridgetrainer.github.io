@@ -6,6 +6,7 @@ import type { TrainerContent } from "./types";
 import { AccountProvider, useAccount, api, type AccountState } from "./account";
 import "./globals.css";
 import "./editor.css";
+import "./appearance.css";
 
 function App() {
   const [content, setContent] = useState<TrainerContent | null>(null);

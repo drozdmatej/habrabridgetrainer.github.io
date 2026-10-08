@@ -6,6 +6,7 @@ import AdminPanel from "./admin-panel";
 import { QuestionCard } from "./question-card";
 import { emptyProgress, recordAnswer, shuffle, passesTest, completeLevel, scorePercent, practicePool, randomExamples, smartExamples } from "./progress";
 import type { ProgressState } from "./progress";
+import { ThemeControl } from "./theme-control";
 import { useProgress } from "./use-progress";
 import { AccountPanel, useAccount } from "./account";
 import { allLevelQuestions, testPool } from "./content-validation";
@@ -184,7 +185,7 @@ function TrainerSession({ initialContent }: { initialContent: TrainerContent }) 
     <a className="skip-link" href="#training-main">Přejít k obsahu</a>
     <header className="topbar">
       <button className="brand" onClick={() => setView("levels")} aria-label="Přejít na přehled lekcí"><span className="brand-mark"><span>♣</span><span>♦</span><span>♥</span><span>♠</span></span><span><strong>HABRA</strong><small>{content.title}</small></span></button>
-      <div className="top-actions"><button className="nav-button" aria-label="Výsledky" onClick={() => setView("stats")}><BarChart3 size={18}/><span>Výsledky</span></button>{canEdit && <button className="nav-button" aria-label="Správa obsahu" onClick={() => setAdminOpen(true)}><Settings2 size={18}/><span>Správa obsahu</span></button>}{backend && <button className="nav-button" aria-label={account.user ? "Můj účet" : "Přihlásit se"} onClick={() => setAccountOpen(true)}><UserRound size={18}/><span>{account.user ? "Můj účet" : "Přihlásit se"}</span></button>}{!backend && <a className="nav-button" aria-label="Přihlásit se" href="https://habra-editor.drozdmatej09.workers.dev"><UserRound size={18}/><span>Přihlásit se</span></a>}</div>
+      <div className="top-actions"><ThemeControl/><button className="nav-button" aria-label="Výsledky" onClick={() => setView("stats")}><BarChart3 size={18}/><span>Výsledky</span></button>{canEdit && <button className="nav-button" aria-label="Správa obsahu" onClick={() => setAdminOpen(true)}><Settings2 size={18}/><span>Správa obsahu</span></button>}{backend && <button className="nav-button" aria-label={account.user ? "Můj účet" : "Přihlásit se"} onClick={() => setAccountOpen(true)}><UserRound size={18}/><span>{account.user ? "Můj účet" : "Přihlásit se"}</span></button>}{!backend && <a className="nav-button" aria-label="Přihlásit se" href="https://habra-editor.drozdmatej09.workers.dev"><UserRound size={18}/><span>Přihlásit se</span></a>}</div>
     </header>
     <main id="training-main" tabIndex={-1} className="main">
       {storageWarning && <p className="storage-warning" role="status">{storageWarning}</p>}

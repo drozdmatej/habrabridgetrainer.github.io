@@ -17,6 +17,8 @@ const newQuestion = (): TrainerQuestion => ({ id: makeId("question"), type: "bid
 
 export default function AdminPanel({ open, onOpenChange, content }: Props) {
   const { enabled: backend, state: account } = useAccount();
+  const [mobilePane, setMobilePane] = useState<"chapters" | "edit" | "preview">("edit");
+  const [compact] = useState(() => window.matchMedia("(max-width: 650px)").matches);
   const [version, setVersion] = useState<number | null>(null);
   const [history, setHistory] = useState<{ version: number; action: string; author: string | null; created_at: number }[] | null>(null);
   const publishedOnServer = useRef(false);
@@ -35,6 +37,9 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
   const issues = useMemo(() => publicationIssues(draft), [draft]);
   const [status, setStatus] = useState<{ tone: "idle" | "saving" | "success" | "error"; text: string }>({ tone: "idle", text: "" });
   const fileInput = useRef<HTMLInputElement>(null);
+  const systemSettings = useRef<HTMLDetailsElement>(null);
+  const chapterSettings = useRef<HTMLDetailsElement>(null);
+  const testSettings = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
     if (!dirty) return;
@@ -57,7 +62,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
   function patchSystem(patch: Partial<TrainerSystem>) { setDraft(current => ({ ...current, systems: current.systems.map(item => item.id === system.id ? { ...item, ...patch } : item) })); }
   function addSystem() {
     const created: TrainerSystem = { id: makeId("system"), name: "Nový systém", status: "draft", description: "", rules: [], access: "public", levels: [] };
-    setDraft(current => ({ ...current, systems: [...current.systems, created] })); setSystemId(created.id); setLevelId(""); setQuestionId(""); setQuestionBank("lesson");
+    setDraft(current => ({ ...current, systems: [...current.systems, created] })); setSystemId(created.id); setLevelId(""); setQuestionId(""); setQuestionBank("lesson"); setMobilePane("edit");
   }
   function deleteSystem() {
     if (draft.systems.length <= 1 || !confirm(`Smazat systém „${system.name}“ včetně všech kapitol?`)) return;
@@ -66,10 +71,10 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
   function patchTest(patch: Partial<NonNullable<TrainerLevel["test"]>>) { if (level) patchLevel({ test: { source: "lesson", ...level.test, ...patch } }); }
   function patchQuestions(questions: TrainerQuestion[]) { if (questionBank === "test") patchTest({ questions }); else patchLevel({ questions }); }
   function patchQuestion(patch: Partial<TrainerQuestion>) { if (!level) return; patchQuestions(editingQuestions.map((item) => item.id === questionId ? { ...item, ...patch } : item)); }
-  function addLevel() { const created = newLevel(); mutateSystem((levels) => [...levels, created]); setLevelId(created.id); setQuestionId(""); setQuestionBank("lesson"); }
+  function addLevel() { const created = newLevel(); mutateSystem((levels) => [...levels, created]); setLevelId(created.id); setQuestionId(""); setQuestionBank("lesson"); setMobilePane("edit"); }
   function deleteLevel() { if (!level || !confirm(`Smazat kapitolu „${level.title}“ včetně všech úloh?`)) return; const next = system.levels.filter((item) => item.id !== level.id); mutateSystem(() => next); setQuestionBank("lesson"); setLevelId(next[0]?.id || ""); setQuestionId(next[0]?.questions[0]?.id || ""); }
   function moveLevel(direction: -1 | 1) { if (!level || levelIndex < 0) return; const target = levelIndex + direction; if (target < 0 || target >= system.levels.length) return; mutateSystem((levels) => { const next = [...levels]; [next[levelIndex], next[target]] = [next[target], next[levelIndex]]; return next; }); }
-  function addQuestion() { if (!level) return; const created = newQuestion(); patchQuestions([...editingQuestions, created]); setQuestionId(created.id); }
+  function addQuestion() { if (!level) return; const created = newQuestion(); patchQuestions([...editingQuestions, created]); setQuestionId(created.id); setMobilePane("edit"); }
   function deleteQuestion() { if (!level || !question || !confirm("Smazat tuto úlohu?")) return; const next = editingQuestions.filter((item) => item.id !== question.id); patchQuestions(next); setQuestionId(next[0]?.id || ""); }
   function moveQuestion(direction: -1 | 1) { if (!level || questionIndex < 0) return; const target = questionIndex + direction; if (target < 0 || target >= editingQuestions.length) return; const next = [...editingQuestions]; [next[questionIndex], next[target]] = [next[target], next[questionIndex]]; patchQuestions(next); }
   function patchOption(optionId: string, patch: Partial<ChoiceOption>) { if (!question) return; patchQuestion({ options: (question.options || []).map((item) => item.id === optionId ? { ...item, ...patch } : item) }); }
@@ -173,9 +178,14 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
     finally { busy.current = false; }
   }
 
-  return <Dialog open={open} onOpenChange={close}><DialogContent className="admin-dialog" showCloseButton>
+  const loadActions = <>
+    <button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("load")}>{loaded ? "Načíst znovu" : "Načíst koncept"}</button>
+    <button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("web")}>Načíst obsah webu</button>
+  </>;
+
+  return <Dialog open={open} onOpenChange={close}><DialogContent className="admin-dialog" data-mobile-pane={mobilePane} showCloseButton>
     <DialogHeader><DialogTitle>Správa obsahu</DialogTitle><DialogDescription>{backend ? "Koncept je společný pro editory. Zveřejněním změníš otázky pro všechny hráče." : "Koncept ukládej v tomto prohlížeči. Hotové otázky exportuj a nahraj na GitHub."}</DialogDescription></DialogHeader>
-    <div className="admin-summary"><span>{system?.name || "Systém"}</span><strong>{system?.levels.length || 0} kapitol · {totalQuestions} úloh</strong><div><button disabled={!loaded || status.tone === "saving"} onClick={() => fileInput.current?.click()}><FileUp size={15}/> Import JSON</button><button onClick={exportJson}><Download size={15}/> Export konceptu</button><input ref={fileInput} type="file" accept="application/json" hidden onChange={(event) => importJson(event.target.files?.[0])}/></div></div>
+    <div className="admin-toolbar"><div className="admin-summary"><span>{system?.name || "Systém"}</span><strong>{system?.levels.length || 0} kapitol · {totalQuestions} úloh</strong><div><button disabled={!loaded || status.tone === "saving"} onClick={() => fileInput.current?.click()}><FileUp size={15}/> Import JSON</button><button onClick={exportJson}><Download size={15}/> Export konceptu</button><input ref={fileInput} type="file" accept="application/json" hidden onChange={(event) => importJson(event.target.files?.[0])}/></div></div>{loaded && <nav className="admin-mobile-nav" aria-label="Části editoru">{([["chapters", "Kapitoly"], ["edit", "Úpravy"], ["preview", "Náhled"]] as const).map(([pane, label]) => <button key={pane} aria-pressed={mobilePane === pane} onClick={() => setMobilePane(pane)}>{label}</button>)}</nav>}</div>
     {!loaded ? <div className="admin-empty"><h3>Nejprve načti aktuální koncept</h3><p>{backend ? "Načti společný koncept ze serveru. Rozpracované úpravy se hráčům zobrazí až po zveřejnění." : "Klikni na „Načíst koncept“. Otevře se koncept z tohoto prohlížeče, případně aktuální otázky z webu. Editor sám nemění web pro ostatní hráče."}</p></div> :
     <fieldset disabled={status.tone === "saving"} className="admin-grid">
 
@@ -183,10 +193,10 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
         <div className="admin-sidebar-head"><strong>Kapitoly</strong><button onClick={addLevel} aria-label="Přidat kapitolu"><Plus size={16}/></button></div>
         <button className="button button-secondary" disabled={draft.systems.length >= 20} onClick={addSystem}><Plus size={16}/>Nový systém</button>
         <label>Systém<select value={system.id} onChange={(event) => { const selected = draft.systems.find((x) => x.id === event.target.value)!; setQuestionBank("lesson"); setSystemId(selected.id); setLevelId(selected.levels[0]?.id || ""); setQuestionId(selected.levels[0]?.questions[0]?.id || ""); }}>{draft.systems.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-        <div className="admin-list">{system?.levels.map((item, index) => <button key={item.id} className={item.id === levelId ? "active" : ""} onClick={() => { setQuestionBank("lesson"); setLevelId(item.id); setQuestionId(item.questions[0]?.id || ""); }}><span>{String(index + 1).padStart(2,"0")}</span><div><strong>{item.title}</strong><small>{item.questions.length} úloh · {item.status === "draft" ? "rozpracováno" : "ke zveřejnění"}</small></div></button>)}</div>
+        <div className="admin-list">{system?.levels.map((item, index) => <button key={item.id} className={item.id === levelId ? "active" : ""} onClick={() => { setQuestionBank("lesson"); setLevelId(item.id); setQuestionId(item.questions[0]?.id || ""); setMobilePane("edit"); }}><span>{String(index + 1).padStart(2,"0")}</span><div><strong>{item.title}</strong><small>{item.questions.length} úloh · {item.status === "draft" ? "rozpracováno" : "ke zveřejnění"}</small></div></button>)}</div>
       </aside>
       <div className="admin-editor">
-        <section className="editor-section system-settings"><div className="editor-heading"><h3>Nastavení systému</h3><button className="danger" disabled={draft.systems.length <= 1} onClick={deleteSystem} aria-label="Smazat systém"><Trash2 size={16}/></button></div>
+        <details className="editor-section system-settings" ref={systemSettings} open={!compact}><summary>Nastavení systému</summary><div className="editor-heading"><h3>Nastavení systému</h3><button className="danger" disabled={draft.systems.length <= 1} onClick={deleteSystem} aria-label="Smazat systém"><Trash2 size={16}/></button></div>
           <label>Název systému<input value={system.name} onChange={event => patchSystem({ name: event.target.value })}/></label>
           <label>Popis systému<textarea rows={2} value={system.description || ""} onChange={event => patchSystem({ description: event.target.value })}/></label>
           <label>Stav systému<select aria-label="Stav systému" value={system.status} onChange={event => patchSystem({ status: event.target.value as TrainerSystem["status"] })}><option value="draft">Rozpracovaný — nezveřejňovat</option><option value="active">Připravený ke zveřejnění</option></select></label>
@@ -194,22 +204,23 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
           {backend && <label>Výchozí přístup<select aria-label="Výchozí přístup" value={system.access || "public"} onChange={event => patchSystem({ access: event.target.value as TrainerSystem["access"] })}><option value="public">Veřejný</option><option value="restricted">Jen povolení uživatelé</option></select><small>Individuální povolení a zákazy nastavuje správce v účtech. Editoři a správci mají vždy přístup.</small></label>}
           <label>Pravidla systému<textarea rows={6} value={(system.rules || []).join("\n")} onChange={event => patchSystem({ rules: event.target.value.split("\n") })}/><small>Jedno pravidlo na řádek, nejvýše 50 pravidel.</small></label>
           <label>Podklady systému<textarea rows={2} value={(system.sources || []).join("\n")} onChange={event => patchSystem({ sources: event.target.value.split("\n") })}/><small>Jeden podklad na řádek.</small></label>
-        </section>
+        </details>
         {level ? <>
-          <section className="editor-section"><div className="editor-heading"><div><span>Kapitola {levelIndex + 1}</span><h3>Základní údaje</h3></div><div><button onClick={() => moveLevel(-1)} disabled={levelIndex === 0} aria-label="Posunout kapitolu nahoru"><ArrowUp size={16}/></button><button onClick={() => moveLevel(1)} disabled={levelIndex === system.levels.length - 1} aria-label="Posunout kapitolu dolů"><ArrowDown size={16}/></button><button className="danger" onClick={deleteLevel} aria-label="Smazat kapitolu"><Trash2 size={16}/></button></div></div>
+          <details className="editor-section chapter-settings" ref={chapterSettings} open={!compact}><summary>Nastavení kapitoly</summary><div className="editor-heading"><div><span>Kapitola {levelIndex + 1}</span><h3>Základní údaje</h3></div><div><button onClick={() => moveLevel(-1)} disabled={levelIndex === 0} aria-label="Posunout kapitolu nahoru"><ArrowUp size={16}/></button><button onClick={() => moveLevel(1)} disabled={levelIndex === system.levels.length - 1} aria-label="Posunout kapitolu dolů"><ArrowDown size={16}/></button><button className="danger" onClick={deleteLevel} aria-label="Smazat kapitolu"><Trash2 size={16}/></button></div></div>
             <label className="chapter-status"><Checkbox checked={level.status === "draft"} onCheckedChange={(checked) => patchLevel({ status: checked ? "draft" : "active" })}/> Rozpracovaná kapitola — nezveřejňovat</label>
             <label>Název<input value={level.title} onChange={(event) => patchLevel({ title: event.target.value })}/></label>
             <label>Stručný popis<textarea rows={2} value={level.description} onChange={(event) => patchLevel({ description: event.target.value })}/></label>
             <label>Hranice úspěchu v testu<input type="number" min="0" max="100" value={level.passingPercent} onChange={(event) => patchLevel({ passingPercent: Number(event.target.value) })}/></label>
-          </section>
-          <section className="editor-section test-settings"><h3>Nastavení testu</h3>
+          </details>
+          <details className="editor-section test-settings" ref={testSettings} open={!compact}><summary>Nastavení testu</summary>
             <label>Otázky pro test<select aria-label="Otázky pro test" value={level.test?.source || "lesson"} onChange={event => { const source = event.target.value as "lesson" | "separate"; patchTest({ source }); setQuestionBank("lesson"); setQuestionId(level.questions[0]?.id || ""); }}><option value="lesson">Otázky z tréninku</option><option value="separate">Samostatná sada testových otázek</option></select></label>
             <label>Počet otázek v testu<input type="number" min="1" max="2000" placeholder="Všechny otázky" value={level.test?.questionCount ?? ""} onChange={event => patchTest({ questionCount: event.target.value === "" ? undefined : Number(event.target.value) })}/><small>Prázdné pole = všechny otázky. Vyšší počet než velikost sady zablokuje zveřejnění.</small></label>
             <label className="chapter-status"><Checkbox checked={level.test?.shuffle !== false} onCheckedChange={checked => patchTest({ shuffle: !!checked })}/> Náhodný výběr a pořadí otázek</label>
             <label className="chapter-status"><Checkbox checked={level.test?.requireLesson !== false} onCheckedChange={checked => patchTest({ requireLesson: !!checked })}/> Před testem vyžadovat dokončený trénink</label>
-            {level.test?.source === "separate" && <div className="chapter-filters" role="group" aria-label="Sada otázek v editoru">{([ ["lesson", "Tréninkové otázky"], ["test", "Testové otázky"] ] as const).map(([bank, label]) => <button key={bank} aria-pressed={questionBank === bank} onClick={() => { setQuestionBank(bank); setQuestionId((bank === "test" ? level.test?.questions : level.questions)?.[0]?.id || ""); }}>{label}</button>)}</div>}
-          </section>
+
+          </details>
           <section className="editor-section"><div className="editor-heading"><div><span>Úlohy</span><h3>{questionBank === "test" ? "Testové otázky" : "Obsah kapitoly"}</h3></div><button className="add-button" onClick={addQuestion}><Plus size={16}/> Přidat úlohu</button></div>
+            {level.test?.source === "separate" && <div className="chapter-filters" role="group" aria-label="Sada otázek v editoru">{([ ["lesson", "Tréninkové otázky"], ["test", "Testové otázky"] ] as const).map(([bank, label]) => <button key={bank} aria-pressed={questionBank === bank} onClick={() => { setQuestionBank(bank); setQuestionId((bank === "test" ? level.test?.questions : level.questions)?.[0]?.id || ""); }}>{label}</button>)}</div>}
             <div className="question-tabs">{editingQuestions.map((item,index)=><button key={item.id} className={item.id===questionId ? "active":""} onClick={()=>setQuestionId(item.id)}>{index+1}</button>)}</div>
             {question ? <div className="question-editor">
               <div className="editor-heading compact"><strong>Úloha {questionIndex + 1}</strong><div><button onClick={()=>moveQuestion(-1)} disabled={questionIndex===0} aria-label="Posunout úlohu nahoru"><ArrowUp size={16}/></button><button onClick={()=>moveQuestion(1)} disabled={questionIndex===editingQuestions.length-1} aria-label="Posunout úlohu dolů"><ArrowDown size={16}/></button><button className="danger" onClick={deleteQuestion} aria-label="Smazat úlohu"><Trash2 size={16}/></button></div></div>
@@ -234,19 +245,24 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
             if (issue.systemId) setSystemId(issue.systemId);
             if (issue.levelId) setLevelId(issue.levelId);
             if (issue.questionId) { setQuestionBank(issue.bank || "lesson"); setQuestionId(issue.questionId); }
+            setMobilePane("edit");
+            if (!issue.questionId) {
+              const target = issue.levelId ? (issue.bank === "test" ? testSettings.current : chapterSettings.current) : systemSettings.current;
+              if (target) target.open = true;
+            }
           }}>{issue.message}</button></li>)}</ul> : <p>Všechny připravené kapitoly prošly kontrolou.</p>}
         </div>
+        {backend && loaded && <section><button disabled={status.tone === "saving"} onClick={async () => { if (busy.current) return; busy.current = true; try { setHistory(await api("/editor/history")); } catch (error) { setStatus({ tone: "error", text: error instanceof Error ? error.message : "Historii nelze načíst." }); } finally { busy.current = false; } }}>Načíst historii verzí</button>{history && <ul>{history.map(item => <li key={item.version}>Verze {item.version} · {({ seed: "Výchozí obsah", save: "Koncept", publish: "Zveřejnění", restore: "Obnovení" } as Record<string, string>)[item.action]} · {item.author || "Výchozí obsah"} · {new Date(item.created_at * 1000).toLocaleString("cs-CZ")} <button disabled={status.tone === "saving" || item.version === version} onClick={() => restore(item.version)}>Obnovit jako koncept</button></li>)}</ul>}</section>}
       </aside>
     </fieldset>}
-    {backend && loaded && <section><button disabled={status.tone === "saving"} onClick={async () => { if (busy.current) return; busy.current = true; try { setHistory(await api("/editor/history")); } catch (error) { setStatus({ tone: "error", text: error instanceof Error ? error.message : "Historii nelze načíst." }); } finally { busy.current = false; } }}>Načíst historii verzí</button>{history && <ul>{history.map(item => <li key={item.version}>Verze {item.version} · {({ seed: "Výchozí obsah", save: "Koncept", publish: "Zveřejnění", restore: "Obnovení" } as Record<string, string>)[item.action]} · {item.author || "Výchozí obsah"} · {new Date(item.created_at * 1000).toLocaleString("cs-CZ")} <button disabled={status.tone === "saving" || item.version === version} onClick={() => restore(item.version)}>Obnovit jako koncept</button></li>)}</ul>}</section>}
+
     <div className="admin-footer">
       <div>
         <p>{sourceLabel}{loaded && (dirty ? " · neuložené změny" : " · bez neuložených změn")}</p>
         {status.text && <p role="status" className={status.tone}>{status.text}</p>}
       </div>
       <div className="draft-actions">
-        <button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("load")}>{loaded ? "Načíst znovu" : "Načíst koncept"}</button>
-        <button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("web")}>Načíst obsah webu</button>
+        {loaded ? <details className="draft-tools" open={!compact}><summary>Další možnosti</summary><div>{loadActions}</div></details> : loadActions}
         {loaded && <><button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("save")}><Save size={16}/>{backend ? "Uložit koncept na server" : "Uložit v prohlížeči"}</button>
         <button className="button button-primary" disabled={status.tone === "saving" || issues.length > 0} onClick={() => perform("publish")}>{backend ? "Zveřejnit pro všechny" : "Exportovat pro web"}</button></>}
       </div>

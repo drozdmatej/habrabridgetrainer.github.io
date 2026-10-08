@@ -49,6 +49,58 @@ try {
   context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
   const a = await context.newPage(), b = await context.newPage();
   await a.goto(base); await b.goto(base);
+  const mobileContext = await browser.newContext({ viewport: { width: 320, height: 740 }, colorScheme: 'dark' });
+  const mobile = await mobileContext.newPage(); mobile.on('pageerror', error => errors.push(error.message));
+  await mobile.goto(base);
+  await mobile.getByRole('button', { name: 'Správa obsahu', exact: true }).waitFor();
+  assert.equal(await mobile.locator('html').getAttribute('data-theme'), 'dark');
+  assert.ok(await mobile.locator('.level-card:not(.is-locked)').first().evaluate(card => {
+    const rgb = value => value.match(/[\d.]+/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; });
+    const luminance = value => { const [r, g, b] = rgb(value); return .2126 * r + .7152 * g + .0722 * b; };
+    const foreground = luminance(getComputedStyle(card.querySelector('h2')).color), background = luminance(getComputedStyle(card).backgroundColor);
+    return (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05) >= 4.5;
+  }), 'Dark chapter title has readable contrast');
+  await mobile.locator('.theme-control summary').click();
+  await mobile.locator('#theme-preference').selectOption('light');
+  assert.equal(await mobile.locator('html').getAttribute('data-theme'), 'light');
+  await mobile.reload();
+  assert.equal(await mobile.locator('html').getAttribute('data-theme'), 'light');
+  await mobile.locator('.theme-control summary').click();
+  await mobile.locator('#theme-preference').selectOption('system');
+  await mobile.emulateMedia({ colorScheme: 'light' }); await poll(() => mobile.locator('html').getAttribute('data-theme'), 'light');
+  await mobile.emulateMedia({ colorScheme: 'dark' }); await poll(() => mobile.locator('html').getAttribute('data-theme'), 'dark');
+  await mobile.locator('.theme-control summary').press('Escape');
+  await mobile.getByRole('button', { name: 'Správa obsahu', exact: true }).click();
+  await mobile.getByRole('button', { name: 'Načíst koncept', exact: true }).click();
+  await mobile.getByLabel('Otázka', { exact: true }).fill('Mobilní úprava bez ztráty konceptu');
+  assert.equal(await mobile.locator('.admin-sidebar').isVisible(), false);
+  assert.equal(await mobile.locator('.admin-preview').isVisible(), false);
+  assert.equal(await mobile.locator('.system-settings').evaluate(node => node.open), false);
+  await mobile.getByRole('button', { name: 'Náhled', exact: true }).click();
+  await mobile.locator('.admin-preview').getByRole('heading', { name: 'Mobilní úprava bez ztráty konceptu', exact: true }).waitFor();
+  await mobile.getByRole('button', { name: 'Kapitoly', exact: true }).click();
+  await mobile.locator('.admin-list button').nth(1).click();
+  assert.equal(await mobile.locator('.admin-editor').isVisible(), true);
+  await mobile.getByRole('button', { name: 'Kapitoly', exact: true }).click();
+  await mobile.locator('.admin-list button').first().click();
+  assert.equal(await mobile.getByLabel('Otázka', { exact: true }).inputValue(), 'Mobilní úprava bez ztráty konceptu');
+  await mobile.getByRole('button', { name: 'Uložit v prohlížeči', exact: true }).click();
+  for (const width of [320, 360, 390]) {
+    await mobile.setViewportSize({ width, height: 740 });
+    for (const pane of ['Kapitoly', 'Úpravy', 'Náhled']) {
+      await mobile.getByRole('button', { name: pane, exact: true }).click();
+      assert.equal(await mobile.locator('.admin-dialog').evaluate(node => node.scrollWidth <= node.clientWidth), true, `${pane} fits ${width}px`);
+      assert.equal(await mobile.locator('.admin-grid').evaluate(node => node.scrollWidth <= node.clientWidth), true, `${pane} content fits ${width}px`);
+      const footer = await mobile.locator('.admin-footer').boundingBox();
+      assert.ok(footer.y + footer.height <= 741 && footer.y > 400, 'Save actions stay on screen with room to edit');
+    }
+  }
+  if (process.env.HABRA_SCREENSHOT_DIR) {
+    await mobile.screenshot({ path: process.env.HABRA_SCREENSHOT_DIR + '/editor-dark-mobile.png' });
+
+  }
+  await mobileContext.close();
+  console.log('PASS persistent theme preference, live system theme and mobile editor navigation, draft preservation and visible save actions at 320–390px');
   const studentContext = await browser.newContext();
   const student = await studentContext.newPage();
   student.on('pageerror', error => errors.push(error.message));
@@ -311,6 +363,7 @@ try {
   assert.equal(await lessons.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await lessons.getByRole('button', { name: 'Výsledky', exact: true }).click();
   assert.equal(await lessons.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+
   assert.deepEqual(errors, []);
   console.log('PASS mobile overview/statistics and no application exceptions');
 } finally {

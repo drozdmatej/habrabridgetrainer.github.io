@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Bridžový trénink HABRA: Lepší levná, 2/1, Epstein Precision, Precise Mr. and Mrs. Smith a samostatný pokročilý standard Matěje a Mikuláše." />
     <link rel="icon" href="./favicon.svg" />
+    <script>
+      try {
+        const theme = localStorage.getItem('habra-theme');
+        document.documentElement.dataset.theme = theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      } catch { document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+    </script>
     <title>HABRA — Bridžový trenažér</title>
   </head>
   <body>

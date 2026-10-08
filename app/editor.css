@@ -67,7 +67,7 @@
 .account-dialog button:disabled { opacity:.5; cursor:not-allowed; }
 .account-form input:focus-visible, .account-filters input:focus-visible { outline:3px solid var(--green-dark); outline-offset:2px; }
 .account-form label, .account-users label { display: grid; gap: 5px; }
-.account-form input, .account-users select, .account-filters input, .account-filters select { border: 1px solid var(--line); border-radius: 6px; padding: 8px; color:var(--ink); background:white; }
+.account-form input, .account-users select, .account-filters input, .account-filters select { border: 1px solid var(--line); border-radius: 6px; padding: 8px; color:var(--ink); background:var(--white); }
 .account-users { padding: 0; list-style: none; }
 .account-users li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; }
 .account-users small { display: block; }

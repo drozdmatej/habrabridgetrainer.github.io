@@ -71,3 +71,5 @@ Přednost mají aktuální chyby, následně otázky s uplynulým termínem opak
 potom nové otázky. Správné odpovědi prodlužují interval na 1, 3, 7, 14 a 30 dní;
 chyba jej vrací na okamžité opakování. Když vybraná sada potřebuje více otázek,
 doplní se méně procvičené příklady. Ani chytré opakování neodemkne kapitoly.
+
+V horní liště lze zvolit světlý či tmavý vzhled, nebo automatický režim podle zařízení. Volba zůstává uložená v prohlížeči. Mobilní editor má oddělené části Kapitoly, Úpravy a Náhled; přepínání zachovává rozpracovaný koncept. Nastavení systému, kapitoly a testu lze sbalit.
