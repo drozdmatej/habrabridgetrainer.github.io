@@ -8,6 +8,7 @@ import { emptyProgress, recordAnswer, shuffle, passesTest, completeLevel, scoreP
 import type { ProgressState } from "./progress";
 import { useProgress } from "./use-progress";
 import { AccountPanel, useAccount } from "./account";
+import { matchesSearch } from "./search";
 
 import type { TrainerContent, TrainerLevel, TrainerQuestion } from "./types";
 
@@ -32,6 +33,7 @@ function TrainerSession({ initialContent }: { initialContent: TrainerContent }) 
   const [accountOpen, setAccountOpen] = useState(false);
   const canEdit = !backend || account.user?.role === "editor" || account.user?.role === "admin";
   const [adminOpen, setAdminOpen] = useState(false);
+  const [chapterSearch, setChapterSearch] = useState("");
   const storageKey = `habra-progress-pages-v2:${location.pathname}${account.user ? `:user:${account.user.id}` : ""}`;
   const { store, update: updateStore, loaded: progressLoaded, warning: storageWarning } = useProgress(content.systems[0].id, storageKey);
   const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null);
@@ -42,6 +44,7 @@ function TrainerSession({ initialContent }: { initialContent: TrainerContent }) 
     updateStore(current => ({ ...current, systems: { ...current.systems, [system.id]: update(current.systems[system.id] || emptyProgress()) } }));
   }
   function selectSystem(id: string) {
+    setChapterSearch("");
     setSelectedSystemId(id);
     updateStore(current => ({ ...current, selectedSystemId: id }));
     setLevel(null); setAnswer(null); setView("levels");
@@ -58,6 +61,7 @@ function TrainerSession({ initialContent }: { initialContent: TrainerContent }) 
   const completed = system.levels.filter(item => progress.levels[item.id]?.testPassed).length;
   const currentQuestion = questions[questionIndex];
   const accuracy = progress.answered ? Math.round((progress.correct / progress.answered) * 100) : 0;
+  const visibleLevels = system.levels.map((item, index) => ({ item, index })).filter(({ item }) => matchesSearch(`${item.title} ${item.description}`, chapterSearch));
   const unlockedIds = useMemo(() => {
     const ids = new Set<string>();
     system.levels.forEach((item, index) => { if (index === 0 || progress.levels[system.levels[index - 1].id]?.testPassed) ids.add(item.id); });
@@ -136,7 +140,9 @@ function TrainerSession({ initialContent }: { initialContent: TrainerContent }) 
         {system.description && <p className="system-description">{system.description}</p>}
         {!!system.rules?.length && <details className="system-rules"><summary>Pravidla systému {system.name}</summary><ul>{system.rules.map(rule => <li key={rule}>{rule}</li>)}</ul><p>Ve sledech se střídají tvoje a partnerovy hlášky; soupeři pasují. Lekce nepokrývají celý systém.</p>{!!system.sources?.length && <>{system.difficulty !== "beginner" && <p>FB = figurové body · M = drahá · m = levná · bal = vyrovnaná ruka · F = forsing · GF = forsing do hry · INV = výzva · TRF = transfer · NF = neforsující · S/T = slemový pokus · M4 = drahý čtyřlist</p>}<strong>Podklady</strong><ul>{system.sources.map(source => <li key={source}>{source}</li>)}</ul></>}</details>}
         <div className="system-row"><div><span className="status-dot"/> Aktivní systém</div><strong>{system.name}</strong><span>{system.levels.length} kapitoly · {system.levels.reduce((sum, item) => sum + item.questions.length, 0)} úloh</span></div>
-        <section className="level-list" aria-label="Kapitoly systému">{system.levels.map((item, index) => {
+        <div className="chapter-search"><label htmlFor="chapter-search">Hledat kapitolu<input id="chapter-search" type="search" value={chapterSearch} onChange={event => setChapterSearch(event.target.value)} placeholder="Název nebo téma kapitoly"/></label><p aria-live="polite">Zobrazeno {visibleLevels.length} z {system.levels.length} kapitol</p></div>
+        {!visibleLevels.length && <p>Žádná kapitola neodpovídá hledání. <button className="text-button" onClick={() => setChapterSearch("")}>Vymazat hledání</button></p>}
+        <section className="level-list" aria-label="Kapitoly systému">{visibleLevels.map(({ item, index }) => {
           const unlocked = unlockedIds.has(item.id); const state = progress.levels[item.id] || { lessonCompleted:false, testPassed:false, bestScore:0 };
           return <article key={item.id} className={`level-card ${!unlocked ? "is-locked" : ""}`}><div className="level-number">{String(index + 1).padStart(2,"0")}</div><div className="level-copy"><div className="level-kicker">{state.testPassed ? "Zvládnuto" : state.lessonCompleted ? "Připraveno na test" : unlocked ? "Odemčeno" : "Zamčeno"}</div><h2>{item.title}</h2><p>{item.description}</p><div className="level-meta"><span><BookOpen size={15}/> {item.questions.length} úloh</span><span><ShieldCheck size={15}/> test od {item.passingPercent} %</span></div></div><div className="level-actions">{unlocked ? <><button className="button button-primary" disabled={!progressLoaded} onClick={() => begin(item,"lesson")}><Play size={16}/> {state.lessonCompleted ? "Procvičit znovu" : "Začít trénink"}</button><button className="button button-secondary" disabled={!state.lessonCompleted} onClick={() => begin(item,"test")}>Test {state.bestScore ? `· ${state.bestScore} %` : ""}<ChevronRight size={16}/></button>{item.questions.some(q => progress.mistakes[item.id]?.includes(q.id)) && <button className="button button-secondary" onClick={() => begin(item,"review")}>Procvičit chyby ({item.questions.filter(q => progress.mistakes[item.id]?.includes(q.id)).length})</button>}</> : <div className="locked-label"><LockKeyhole size={18}/> Dokonči předchozí kapitolu</div>}</div></article>;
         })}</section>

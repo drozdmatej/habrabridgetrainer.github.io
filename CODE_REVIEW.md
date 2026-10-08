@@ -49,3 +49,20 @@ v pravidlech je přehled zkratek. Podklady a hranice pokrytí popisuje SOURCES.m
 5. **Více praktických rozdání a sehrávka.** Další přínos mají kompletní ruce,
    plán sehrávky, výnosy a obrana podle ročníků HABRA. Nestačí zde jen další
    definice konvencí; je vhodné doplnit řešená rozdání z výuky.
+
+## Úpravy rozhraní účtu a hledání
+
+Průhlednost dialogu účtu byla potvrzena kontrolou skutečného vypočteného
+pozadí v Chromium (`rgba(0, 0, 0, 0)`). Sdílený styl dialogů nyní nastavuje
+plné pozadí, barvu textu a ztmavení stránky. Dialog účtu má vlastní
+rozložení a posouvání pro mobil; zavírací tlačítka jsou česky.
+
+Přibylo hledání kapitol a uživatelů bez rozlišení velikosti písmen/diakritiky,
+filtr rolí uživatelů, zobrazení/skrytí hesla a potvrzení hesla při registraci
+i změně. Hledání kapitol zachovává původní čísla a podmínky odemčení.
+Formuláře během požadavku blokují další odeslání a editaci polí.
+
+Ověřeno sestavením, 21 testy, prohlížečovými regresními kontrolami a
+integračním testem Workeru s izolovanou D1. Kontroly zahrnují neprůhledné
+pozadí na desktopu/mobilu, hledání, filtry, neshodná i platná hesla a
+standardní registraci/přihlášení/správu rolí.

@@ -5,6 +5,8 @@
 :root { --ink:#0b1f22; --ink-2:#123035; --paper:#f4f1e9; --paper-2:#ebe7db; --green:#36c986; --green-dark:#146548; --red:#d95858; --muted:#647277; --line:#d9d5c9; --white:#fffdf8; }
 /* Editor controls share the established HABRA palette. */
 :root { --background:var(--paper); --foreground:var(--ink); --primary:var(--green-dark); --primary-foreground:white; --border:var(--line); --input:var(--line); --ring:var(--green-dark); --muted-foreground:var(--muted); }
+[data-slot="dialog-content"] { background-color:var(--white); color:var(--ink); border-color:var(--line); }
+[data-slot="dialog-overlay"] { background-color:rgba(11,31,34,.6); }
 * { box-sizing:border-box; }
 html { background:var(--paper); }
 body { margin:0; color:var(--ink); background:radial-gradient(circle at 85% 0%, rgba(54,201,134,.11), transparent 28rem), var(--paper); font-family:Arial, Helvetica, sans-serif; font-size:16px; line-height:1.5; }
@@ -60,3 +62,9 @@ footer { border-top:1px solid var(--line); padding:24px; text-align:center; colo
 
 /* Account link on the static GitHub Pages version. */
 a.nav-button { text-decoration: none; }
+
+.chapter-search { display:flex; align-items:end; gap:16px; flex-wrap:wrap; margin:24px 0 16px; }
+.chapter-search label { display:grid; gap:6px; flex:1; min-width:200px; font-weight:700; }
+.chapter-search input { width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--white); color:var(--ink); font:inherit; font-weight:400; }
+.chapter-search input:focus-visible { outline:3px solid var(--green-dark); outline-offset:2px; }
+.chapter-search p { color:var(--muted); font-size:14px; margin:0 0 10px; }

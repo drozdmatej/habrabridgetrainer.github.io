@@ -48,9 +48,26 @@
   .admin-footer p { font-size:12px; }
 }
 .account-form { display: grid; gap: 12px; }
-.account-dialog { max-height: 90vh; overflow-y: auto; }
+.account-dialog { max-height: calc(100dvh - 32px); overflow-y: auto; border-radius: 16px; box-shadow: 0 24px 80px rgba(11,31,34,.28); }
+.account-dialog [data-slot="dialog-title"] { font: 500 28px Georgia,serif; padding-right:24px; }
+.account-dialog [data-slot="dialog-description"], .account-dialog p { color:var(--muted); }
+.account-dialog p { margin: 0; font-size:14px; }
+.account-dialog section, .account-dialog details { border-top:1px solid var(--line); padding-top:16px; }
+.account-dialog summary { cursor:pointer; font-weight:700; margin-bottom:12px; }
+.account-dialog h3 { margin:0 0 8px; }
+.account-dialog .account-form, .account-form fieldset { border:0; padding:0; margin:0; display:grid; gap:12px; min-width:0; }
+.account-form input, .account-users select, .account-filters input, .account-filters select { width:100%; min-width:0; min-height:44px; font-size:16px; }
+.password-control { position:relative; }
+.account-form .password-control input { padding-right:48px; }
+.password-control button { position:absolute; top:0; right:0; height:44px; width:44px; display:grid; place-items:center; color:var(--green-dark); border:0; background:transparent; cursor:pointer; }
+.account-filters { display:grid; gap:12px; margin-top:16px; }
+.account-filters label { display:grid; gap:5px; }
+.account-dialog [role="alert"] { padding:12px; border-radius:8px; background:#ffe9e5; color:#963d32; }
+.account-dialog [role="status"] { padding:12px; border-radius:8px; background:#dff2e7; color:var(--green-dark); }
+.account-dialog button:disabled { opacity:.5; cursor:not-allowed; }
+.account-form input:focus-visible, .account-filters input:focus-visible { outline:3px solid var(--green-dark); outline-offset:2px; }
 .account-form label, .account-users label { display: grid; gap: 5px; }
-.account-form input, .account-users select { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; color: #0f172a; background: white; }
+.account-form input, .account-users select, .account-filters input, .account-filters select { border: 1px solid var(--line); border-radius: 6px; padding: 8px; color:var(--ink); background:white; }
 .account-users { padding: 0; list-style: none; }
 .account-users li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; }
 .account-users small { display: block; }
