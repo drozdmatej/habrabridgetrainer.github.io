@@ -7,6 +7,7 @@ import { contentSchema, publicationIssues, publishedContent, validateQuestion } 
 import { QuestionPreview } from "./question-card";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { ChoiceOption, TrainerContent, TrainerLevel, TrainerQuestion } from "./types";
+import { api, useAccount } from "./account";
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void; content: TrainerContent };
 
@@ -15,15 +16,19 @@ const newLevel = (): TrainerLevel => ({ id: makeId("level"), title: "Nová kapit
 const newQuestion = (): TrainerQuestion => ({ id: makeId("question"), type: "bid_box", sequence: [], hand: { s: "", h: "", d: "", c: "" }, prompt: "Nová otázka", correctBid: "PASS", rationale: "" });
 
 export default function AdminPanel({ open, onOpenChange, content }: Props) {
+  const { enabled: backend, state: account } = useAccount();
+  const [version, setVersion] = useState<number | null>(null);
+  const [history, setHistory] = useState<{ version: number; action: string; author: string | null; created_at: number }[] | null>(null);
+  const publishedOnServer = useRef(false);
   const [draft, setDraft] = useState<TrainerContent>(content);
   const [levelId, setLevelId] = useState(content.systems[0]?.levels[0]?.id || "");
   const [questionId, setQuestionId] = useState(content.systems[0]?.levels[0]?.questions[0]?.id || "");
   const storedSnapshot = useRef<string | null>(null);
-  const draftKey = `habra-editor-pages-v1:${location.pathname}`;
+  const draftKey = `habra-editor-pages-v1:${location.pathname}${account.user ? `:user:${account.user.id}` : ""}`;
   const [loaded, setLoaded] = useState(false);
   const [systemId, setSystemId] = useState(content.systems[0].id);
   const [savedSnapshot, setSavedSnapshot] = useState(JSON.stringify(content));
-  const [sourceLabel, setSourceLabel] = useState("Koncept je uložený pouze v tomto prohlížeči.");
+  const [sourceLabel, setSourceLabel] = useState(backend ? "Sdílený koncept se ukládá na serveru." : "Koncept je uložený pouze v tomto prohlížeči.");
   const busy = useRef(false);
   const dirty = JSON.stringify(draft) !== savedSnapshot;
   const issues = useMemo(() => publicationIssues(draft), [draft]);
@@ -66,6 +71,15 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
     setStatus({ tone: "saving", text: "Zpracovávám…" });
     try {
       if (action === "load" || action === "web") {
+        if (backend) {
+          const remote = await api<{ version: number; content: TrainerContent }>("/editor/draft");
+          const parsed = contentSchema.parse(action === "web" ? await api<TrainerContent>("/content") : remote.content);
+          setVersion(remote.version); setDraft(parsed); setSavedSnapshot(JSON.stringify(parsed)); setLoaded(true); setHistory(null);
+          setSystemId(parsed.systems[0].id); setLevelId(parsed.systems[0].levels[0]?.id || ""); setQuestionId(parsed.systems[0].levels[0]?.questions[0]?.id || "");
+          setSourceLabel(`${action === "web" ? "Zveřejněný obsah jako základ konceptu" : "Sdílený koncept"} · verze ${remote.version}`);
+          setStatus({ tone: "success", text: "Obsah je připravený k úpravám. Zveřejnění změní otázky pro všechny." });
+          return;
+        }
         let raw: string | null = null;
         try { raw = localStorage.getItem(draftKey); }
         catch { if (action === "load") throw new Error("Úložiště není dostupné. Použij Načíst obsah webu; úpravy lze zálohovat exportem."); }
@@ -82,6 +96,11 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
       } else if (action === "save") {
         if (!loaded) throw new Error("Nejprve načti koncept.");
         const parsed = contentSchema.parse(draft);
+        if (backend) {
+          const remote = await api<{ version: number; content: TrainerContent }>("/editor/draft", account.csrfToken, { version, content: parsed });
+          setVersion(remote.version); setDraft(remote.content); setSavedSnapshot(JSON.stringify(remote.content)); setHistory(null);
+          setSourceLabel(`Sdílený koncept · verze ${remote.version}`); setStatus({ tone: "success", text: "Koncept uložen na serveru. Otázky pro hráče se změní až zveřejněním." }); return;
+        }
         if (localStorage.getItem(draftKey) !== storedSnapshot.current) throw new Error("Koncept změnilo jiné okno. Exportuj své úpravy a načti jej znovu.");
         const raw = JSON.stringify(parsed);
         localStorage.setItem(draftKey, raw); storedSnapshot.current = raw;
@@ -90,6 +109,11 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
       } else {
         const parsed = contentSchema.parse(draft);
         if (!loaded || publicationIssues(parsed).length) throw new Error("Před exportem pro web oprav označené chyby.");
+        if (backend) {
+          const remote = await api<{ version: number; content: TrainerContent }>("/editor/publish", account.csrfToken, { version, content: parsed });
+          setVersion(remote.version); setDraft(remote.content); setSavedSnapshot(JSON.stringify(remote.content)); setHistory(null); publishedOnServer.current = true;
+          setSourceLabel(`Sdílený koncept · verze ${remote.version}`); setStatus({ tone: "success", text: "Zveřejněno pro všechny. Po zavření editoru se načtou aktuální otázky." }); return;
+        }
         downloadJson(publishedContent(parsed), "trainer.json");
         setStatus({ tone: "success", text: "Stažen trainer.json. Nahraď jím content/trainer.json na GitHubu (v hotovém webu docs/content/trainer.json). Web se tímto exportem ještě nezměnil." });
       }
@@ -111,7 +135,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
       if (file.size > 500_000) throw new Error("Soubor smí mít nejvýše 500 kB.");
       const parsed = contentSchema.safeParse(JSON.parse(await file.text()));
       if (!parsed.success) throw new Error("Neplatná struktura JSON: " + parsed.error.issues.slice(0,3).map((i) => i.path.join(".") + ": " + i.message).join("; "));
-      if (!confirm("Nahradit obsah editoru tímto JSON? Otázky na webu se změní až nahráním nového JSON na GitHub.")) return;
+      if (!confirm(backend ? "Nahradit obsah editoru tímto JSON? Otázky pro hráče se změní až zveřejněním." : "Nahradit obsah editoru tímto JSON? Otázky na webu se změní až nahráním nového JSON na GitHub.")) return;
       setDraft(parsed.data); setSystemId(parsed.data.systems[0].id); setLevelId(parsed.data.systems[0].levels[0]?.id || ""); setQuestionId(parsed.data.systems[0].levels[0]?.questions[0]?.id || "");
       setStatus({ tone: "idle", text: "JSON načten do editoru. Zkontroluj chyby a ulož koncept." });
     } catch (error) { setStatus({ tone: "error", text: error instanceof Error ? error.message : "Neplatný JSON." }); }
@@ -121,12 +145,24 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
     if (busy.current) return;
     if (!next && dirty && !confirm("Zahodit neuložené úpravy? Uložený koncept zůstane zachovaný.")) return;
     onOpenChange(next);
+    if (!next && publishedOnServer.current) location.reload();
+  }
+  async function restore(oldVersion: number) {
+    if (busy.current || version === null || !confirm(`Obnovit verzi ${oldVersion} jako nový koncept? Neuložené úpravy budou nahrazeny; zveřejněné otázky se nezmění.`)) return;
+    busy.current = true; setStatus({ tone: "saving", text: "Obnovuji…" });
+    try {
+      const remote = await api<{ version: number; content: TrainerContent }>("/editor/restore", account.csrfToken, { version, restoreVersion: oldVersion });
+      setVersion(remote.version); setDraft(remote.content); setSavedSnapshot(JSON.stringify(remote.content)); setHistory(null);
+      setSystemId(remote.content.systems[0].id); setLevelId(remote.content.systems[0].levels[0]?.id || ""); setQuestionId(remote.content.systems[0].levels[0]?.questions[0]?.id || "");
+      setSourceLabel(`Sdílený koncept · verze ${remote.version}`); setStatus({ tone: "success", text: "Starší verze obnovena jako koncept. Pro změnu otázek ji zkontroluj a zveřejni." });
+    } catch (error) { setStatus({ tone: "error", text: error instanceof Error ? error.message : "Obnova selhala." }); }
+    finally { busy.current = false; }
   }
 
   return <Dialog open={open} onOpenChange={close}><DialogContent className="admin-dialog" showCloseButton>
-    <DialogHeader><DialogTitle>Správa obsahu</DialogTitle><DialogDescription>Koncept ukládej v tomto prohlížeči. Hotové otázky exportuj a nahraj na GitHub.</DialogDescription></DialogHeader>
+    <DialogHeader><DialogTitle>Správa obsahu</DialogTitle><DialogDescription>{backend ? "Koncept je společný pro editory. Zveřejněním změníš otázky pro všechny hráče." : "Koncept ukládej v tomto prohlížeči. Hotové otázky exportuj a nahraj na GitHub."}</DialogDescription></DialogHeader>
     <div className="admin-summary"><span>{system?.name || "Systém"}</span><strong>{system?.levels.length || 0} kapitol · {totalQuestions} úloh</strong><div><button disabled={!loaded || status.tone === "saving"} onClick={() => fileInput.current?.click()}><FileUp size={15}/> Import JSON</button><button onClick={exportJson}><Download size={15}/> Export konceptu</button><input ref={fileInput} type="file" accept="application/json" hidden onChange={(event) => importJson(event.target.files?.[0])}/></div></div>
-    {!loaded ? <div className="admin-empty"><h3>Nejprve načti aktuální koncept</h3><p>Klikni na „Načíst koncept“. Otevře se koncept z tohoto prohlížeče, případně aktuální otázky z webu. Editor sám nemění web pro ostatní hráče.</p></div> :
+    {!loaded ? <div className="admin-empty"><h3>Nejprve načti aktuální koncept</h3><p>{backend ? "Načti společný koncept ze serveru. Rozpracované úpravy se hráčům zobrazí až po zveřejnění." : "Klikni na „Načíst koncept“. Otevře se koncept z tohoto prohlížeče, případně aktuální otázky z webu. Editor sám nemění web pro ostatní hráče."}</p></div> :
     <fieldset disabled={status.tone === "saving"} className="admin-grid">
 
       <aside className="admin-sidebar">
@@ -171,6 +207,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
         </div>
       </aside>
     </fieldset>}
+    {backend && loaded && <section><button disabled={status.tone === "saving"} onClick={async () => { if (busy.current) return; busy.current = true; try { setHistory(await api("/editor/history")); } catch (error) { setStatus({ tone: "error", text: error instanceof Error ? error.message : "Historii nelze načíst." }); } finally { busy.current = false; } }}>Načíst historii verzí</button>{history && <ul>{history.map(item => <li key={item.version}>Verze {item.version} · {({ seed: "Výchozí obsah", save: "Koncept", publish: "Zveřejnění", restore: "Obnovení" } as Record<string, string>)[item.action]} · {item.author || "Výchozí obsah"} · {new Date(item.created_at * 1000).toLocaleString("cs-CZ")} <button disabled={status.tone === "saving" || item.version === version} onClick={() => restore(item.version)}>Obnovit jako koncept</button></li>)}</ul>}</section>}
     <div className="admin-footer">
       <div>
         <p>{sourceLabel}{loaded && (dirty ? " · neuložené změny" : " · bez neuložených změn")}</p>
@@ -179,8 +216,8 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
       <div className="draft-actions">
         <button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("load")}>{loaded ? "Načíst znovu" : "Načíst koncept"}</button>
         <button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("web")}>Načíst obsah webu</button>
-        {loaded && <><button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("save")}><Save size={16}/>Uložit v prohlížeči</button>
-        <button className="button button-primary" disabled={status.tone === "saving" || issues.length > 0} onClick={() => perform("publish")}>Exportovat pro web</button></>}
+        {loaded && <><button className="button button-secondary" disabled={status.tone === "saving"} onClick={() => perform("save")}><Save size={16}/>{backend ? "Uložit koncept na server" : "Uložit v prohlížeči"}</button>
+        <button className="button button-primary" disabled={status.tone === "saving" || issues.length > 0} onClick={() => perform("publish")}>{backend ? "Zveřejnit pro všechny" : "Exportovat pro web"}</button></>}
       </div>
     </div>
   </DialogContent></Dialog>;

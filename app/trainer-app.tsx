@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, BookOpen, ChevronRight, LockKeyhole, Play, Settings2, ShieldCheck, Trophy } from "lucide-react";
+import { BarChart3, BookOpen, ChevronRight, LockKeyhole, Play, Settings2, ShieldCheck, Trophy, UserRound } from "lucide-react";
 import AdminPanel from "./admin-panel";
 import { QuestionCard } from "./question-card";
 import { emptyProgress, recordAnswer, shuffle, passesTest, completeLevel, scorePercent } from "./progress";
 import type { ProgressState } from "./progress";
 import { useProgress } from "./use-progress";
+import { AccountPanel, useAccount } from "./account";
 
 import type { TrainerContent, TrainerLevel, TrainerQuestion } from "./types";
 
@@ -22,10 +23,16 @@ type View = "levels" | "quiz" | "summary" | "stats";
 const difficultyLabels = { beginner: "Začátečník", intermediate: "Pokročilejší", advanced: "Pokročilý", expert: "Velmi pokročilý" };
 
 export default function TrainerApp({ initialContent }: { initialContent: TrainerContent }) {
+  const { state: account } = useAccount();
+  return <TrainerSession key={account.user?.id || "guest"} initialContent={initialContent}/>;
+}
+function TrainerSession({ initialContent }: { initialContent: TrainerContent }) {
+  const { enabled: backend, state: account } = useAccount();
   const content = initialContent;
-  
+  const [accountOpen, setAccountOpen] = useState(false);
+  const canEdit = !backend || account.user?.role === "editor" || account.user?.role === "admin";
   const [adminOpen, setAdminOpen] = useState(false);
-  const storageKey = `habra-progress-pages-v2:${location.pathname}`;
+  const storageKey = `habra-progress-pages-v2:${location.pathname}${account.user ? `:user:${account.user.id}` : ""}`;
   const { store, update: updateStore, loaded: progressLoaded, warning: storageWarning } = useProgress(content.systems[0].id, storageKey);
   const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null);
   const system = content.systems.find(item => item.id === (selectedSystemId ?? store.selectedSystemId)) || content.systems[0];
@@ -112,7 +119,7 @@ export default function TrainerApp({ initialContent }: { initialContent: Trainer
   return <div className="app-shell">
     <header className="topbar">
       <button className="brand" onClick={() => setView("levels")} aria-label="Přejít na přehled lekcí"><span className="brand-mark"><span>♣</span><span>♦</span><span>♥</span><span>♠</span></span><span><strong>HABRA</strong><small>{content.title}</small></span></button>
-      <div className="top-actions"><button className="nav-button" aria-label="Výsledky" onClick={() => setView("stats")}><BarChart3 size={18}/><span>Výsledky</span></button><button className="nav-button" aria-label="Správa obsahu" onClick={() => setAdminOpen(true)}><Settings2 size={18}/><span>Správa obsahu</span></button></div>
+      <div className="top-actions"><button className="nav-button" aria-label="Výsledky" onClick={() => setView("stats")}><BarChart3 size={18}/><span>Výsledky</span></button>{canEdit && <button className="nav-button" aria-label="Správa obsahu" onClick={() => setAdminOpen(true)}><Settings2 size={18}/><span>Správa obsahu</span></button>}{backend && <button className="nav-button" aria-label={account.user ? "Můj účet" : "Přihlásit se"} onClick={() => setAccountOpen(true)}><UserRound size={18}/><span>{account.user ? "Můj účet" : "Přihlásit se"}</span></button>}{!backend && <a className="nav-button" aria-label="Přihlásit se" href="https://habra-editor.drozdmatej09.workers.dev"><UserRound size={18}/><span>Přihlásit se</span></a>}</div>
     </header>
     <main className="main">
       {storageWarning && <p className="storage-warning" role="status">{storageWarning}</p>}
@@ -146,6 +153,7 @@ export default function TrainerApp({ initialContent }: { initialContent: Trainer
       {view === "stats" && <section><div className="page-heading"><div><p className="eyebrow">Tvůj postup</p><h1>Výsledky · {system.name}</h1></div><button className="button button-secondary" onClick={()=>setView("levels")}>Zpět ke kapitolám</button></div><div className="stat-grid"><div><span>Vyřešené úlohy</span><strong>{progress.answered}</strong></div><div><span>Správně</span><strong>{progress.correct}</strong></div><div><span>Úspěšnost</span><strong>{accuracy} %</strong></div><div><span>Složené testy</span><strong>{completed}</strong></div></div><div className="result-list">{system.levels.map((item,index)=>{ const state=progress.levels[item.id]; return <div key={item.id}><span>{index+1}</span><div><strong>{item.title}</strong><small>{state?.lessonCompleted ? "Trénink hotov":"Trénink čeká"} · {state?.testPassed ? "test splněn":"test nesplněn"}</small></div><div><b>{state?.bestScore||0} %</b>{item.questions.some(q => progress.mistakes[item.id]?.includes(q.id)) && <button className="text-button" onClick={() => begin(item,"review")}>Procvičit chyby ({item.questions.filter(q => progress.mistakes[item.id]?.includes(q.id)).length})</button>}</div></div>; })}</div></section>}
     </main>
     <footer>{content.academyName}<span>•</span> {system.name}</footer>
-    {adminOpen && <AdminPanel open={adminOpen} onOpenChange={setAdminOpen} content={content}/>}
+    {adminOpen && canEdit && <AdminPanel open={adminOpen} onOpenChange={setAdminOpen} content={content}/>}
+    {accountOpen && <AccountPanel open={accountOpen} onOpenChange={setAccountOpen}/>}
   </div>;
 }

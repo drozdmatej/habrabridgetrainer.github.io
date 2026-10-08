@@ -47,3 +47,11 @@
   .admin-footer .draft-actions .button { flex:1; width:auto; }
   .admin-footer p { font-size:12px; }
 }
+.account-form { display: grid; gap: 12px; }
+.account-dialog { max-height: 90vh; overflow-y: auto; }
+.account-form label, .account-users label { display: grid; gap: 5px; }
+.account-form input, .account-users select { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; color: #0f172a; background: white; }
+.account-users { padding: 0; list-style: none; }
+.account-users li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; }
+.account-users small { display: block; }
+.account-users li > span { min-width: 0; overflow-wrap: anywhere; }

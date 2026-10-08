@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "habra-editor",
+  "preview_urls": false,
+  "account_id": "3a865422ab5895d8430a5f59fb765927",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-06",
+  "assets": {
+    "directory": "./docs",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ],
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "habra-bridge-auth",
+      "database_id": "52484814-e319-43da-a95f-ae460f158227",
+      "migrations_dir": "worker/migrations"
+    }
+  ],
+  "vars": {
+    "APP_URL": "https://habra-editor.drozdmatej09.workers.dev"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

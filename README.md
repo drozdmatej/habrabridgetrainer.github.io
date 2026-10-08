@@ -7,6 +7,10 @@ a samostatný velmi pokročilý standard Matěje a Mikuláše. Aplikace nabízí
 Obě varianty Precision a standard Matěje a Mikuláše vycházejí z dodaných
 systémových karet. Přehled podkladů a rozsahu lekcí je v [SOURCES.md](SOURCES.md).
 
+Volitelný Cloudflare Worker a D1 přidávají přihlášení jménem a heslem, role
+student/editor/správce a společný editor s přímým zveřejněním otázek pro všechny.
+Nastavení, testy a nasazení popisuje [CLOUDFLARE.md](CLOUDFLARE.md).
+
 Potřebujete Node.js alespoň 22.13 a pnpm 11.19.0 (viz `packageManager`).
 
 ```sh
@@ -22,7 +26,7 @@ na jeho spustitelný soubor. Test si spustí vlastní Vite na portu 5180 a po do
 jej ukončí. Ověřuje souběžná okna, obnovu poškozených dat, editor, mobilní rozložení
 a všech deset nových kapitol včetně testů.
 
-`pnpm-workspace.yaml` povoluje instalační skript pouze závislosti esbuild.
+`pnpm-workspace.yaml` povoluje instalační skripty esbuild a Cloudflare workerd.
 Sestavení spouští TypeScript a kontrolu zveřejňovaného obsahu; neplatné otázky
 sestavení zastaví. Výstup pro GitHub Pages je ve verzované složce `docs`.
 Pro kontrolu bez změny publikovaných souborů použijte:

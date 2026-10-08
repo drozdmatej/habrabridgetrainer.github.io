@@ -1,0 +1,151 @@
+import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve, join } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { spawn, spawnSync } from 'node:child_process';
+import { once } from 'node:events';
+import { chromium } from 'playwright-core';
+
+const dir = mkdtempSync(join(tmpdir(), 'habra-cloudflare-test-'));
+const config = join(dir, 'wrangler.json'); const state = join(dir, 'state');
+const base = 'http://127.0.0.1:8790';
+const env = { ...process.env, XDG_CONFIG_HOME: join(dir, 'config'), WRANGLER_SEND_METRICS: 'false', CI: 'true', HABRA_WRANGLER_CONFIG: config, HABRA_D1_PERSIST_TO: state };
+const wrangler = resolve('node_modules/wrangler/bin/wrangler.js');
+const run = args => { const result = spawnSync(process.execPath, args, { env, encoding: 'utf8', timeout: 60_000 }); if (result.error) throw result.error; assert.equal(result.status, 0, result.stderr + result.stdout); return result.stdout; };
+const sql = command => run([wrangler, 'd1', 'execute', 'habra-trainer', '--local', '--config', config, '--persist-to', state, '--command', command, '--json']);
+const content = JSON.parse(readFileSync('docs/content/trainer.json', 'utf8'));
+const password = 'Local-test-password-172!';
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+let server, browser, log = '';
+writeFileSync(config, JSON.stringify({ name: 'habra-test', main: resolve('worker/index.ts'), compatibility_date: '2026-10-06', assets: { directory: resolve('docs'), binding: 'ASSETS', run_worker_first: ['/api/*'] }, d1_databases: [{ binding: 'DB', database_name: 'habra-trainer', database_id: 'local-habra-test', migrations_dir: resolve('worker/migrations') }], vars: { APP_URL: base } }));
+writeFileSync(join(dir, '.dev.vars'), `PASSWORD_PEPPER=${randomBytes(32).toString('hex')}\n`, { mode: 0o600 });
+function client() {
+  return { cookie: '', csrf: '', async request(path, input, expected = 200, headers = {}) {
+    const response = await fetch(base + '/api' + path, { method: input === undefined ? 'GET' : 'POST', headers: { Cookie: this.cookie, ...(input === undefined ? {} : { Origin: base, 'Content-Type': 'application/json', 'X-CSRF-Token': this.csrf }), ...headers }, body: input === undefined ? undefined : JSON.stringify(input) });
+    const value = await response.json(); assert.equal(response.status, expected, JSON.stringify(value));
+    const cookie = response.headers.get('Set-Cookie'); if (cookie) { assert.match(cookie, /HttpOnly; SameSite=Lax/); this.cookie = cookie.split(';')[0]; }
+    if (value.csrfToken) this.csrf = value.csrfToken;
+    return value;
+  } };
+}
+try {
+  run([wrangler, 'd1', 'migrations', 'apply', 'habra-trainer', '--local', '--config', config, '--persist-to', state]);
+  run(['--experimental-strip-types', 'scripts/seed-database.ts', '--local']);
+  server = spawn(process.execPath, [wrangler, 'dev', '--config', config, '--ip', '127.0.0.1', '--port', '8790', '--persist-to', state], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+  server.stdout.on('data', part => { log += part; }); server.stderr.on('data', part => { log += part; });
+  let ready = false;
+  for (let i = 0; i < 300; i++) { if (server.exitCode !== null) throw new Error(log); try { if ((await fetch(base + '/api/me')).ok) { ready = true; break; } } catch {} await pause(100); }
+  assert.ok(ready, 'Worker did not start: ' + log);
+  const guest = client(), admin = client(), editor = client(), student = client();
+  assert.deepEqual(await guest.request('/content'), content);
+  await guest.request('/editor/draft', undefined, 401);
+  const adminUser = (await admin.request('/auth/register', { username: 'admin-test', password, role: 'admin' })).user;
+  assert.equal(adminUser.role, 'student');
+  const editorUser = (await editor.request('/auth/register', { username: 'editor-test', password })).user;
+  const studentUser = (await student.request('/auth/register', { username: 'student-test', password })).user;
+  await student.request('/editor/draft', undefined, 403);
+  await student.request('/admin/users', undefined, 403);
+  await guest.request('/auth/login', { username: 'admin-test', password: 'Wrong-password-172!' }, 401);
+  await guest.request('/auth/register', { username: 'forged-origin', password }, 403, { Origin: 'https://attacker.invalid' });
+  await student.request('/editor/publish', { version: 0, content }, 403);
+  await guest.request('/auth/login', { username: 'admin-test', password, oversized: 'x'.repeat(500_001) }, 413);
+  sql("UPDATE users SET role='admin' WHERE username='admin-test';");
+  await admin.request('/admin/role', { userId: editorUser.id, role: 'editor' }, 403, { 'X-CSRF-Token': '' });
+  await admin.request('/admin/role', { userId: editorUser.id, role: 'editor' });
+  await admin.request('/admin/role', { userId: adminUser.id, role: 'student' }, 409);
+  assert.equal((await admin.request('/me')).user.role, 'admin');
+  console.log('PASS registration, password verification, CSRF, server roles and last administrator protection');
+
+  const original = await editor.request('/editor/draft');
+  const changed = structuredClone(original.content); changed.systems[0].levels[0].questions[0].prompt = 'Sdílená testovací otázka';
+  const saved = await editor.request('/editor/draft', { version: original.version, content: changed });
+  assert.equal((await guest.request('/content')).systems[0].levels[0].questions[0].prompt, content.systems[0].levels[0].questions[0].prompt);
+  await editor.request('/editor/publish', { version: original.version, content: changed }, 409);
+  const invalid = structuredClone(changed); invalid.systems[0].levels[0].questions[0].correctBid = '8NT';
+  await editor.request('/editor/publish', { version: saved.version, content: invalid }, 400);
+  const published = await editor.request('/editor/publish', { version: saved.version, content: changed });
+  assert.equal((await guest.request('/content')).systems[0].levels[0].questions[0].prompt, 'Sdílená testovací otázka');
+  const restored = await editor.request('/editor/restore', { version: published.version, restoreVersion: 0 });
+  assert.equal(restored.content.systems[0].levels[0].questions[0].prompt, content.systems[0].levels[0].questions[0].prompt);
+  assert.equal((await guest.request('/content')).systems[0].levels[0].questions[0].prompt, 'Sdílená testovací otázka');
+  const results = await Promise.all([editor, admin].map(async actor => {
+    const response = await fetch(base + '/api/editor/draft', { method: 'POST', headers: { Cookie: actor.cookie, Origin: base, 'Content-Type': 'application/json', 'X-CSRF-Token': actor.csrf }, body: JSON.stringify({ version: restored.version, content: changed }) });
+    return { status: response.status, value: await response.json() };
+  }));
+  assert.deepEqual(results.map(result => result.status).sort(), [200, 409]);
+  assert.equal(results.find(result => result.status === 200).value.version, restored.version + 1);
+  assert.equal((await editor.request('/editor/history')).length, 5);
+  run(['--experimental-strip-types', 'scripts/seed-database.ts', '--local']);
+  assert.equal((await editor.request('/editor/draft')).version, restored.version + 1);
+  console.log('PASS shared drafts, concurrent write protection, validated publication, history, restore and repeatable seed');
+
+  const secondSession = client(); await secondSession.request('/auth/login', { username: 'STUDENT-TEST', password });
+  await student.request('/auth/password', { oldPassword: password, newPassword: 'New-local-test-password-172!' });
+  assert.equal((await secondSession.request('/me')).user, null);
+  await guest.request('/auth/login', { username: 'student-test', password }, 401);
+  await guest.request('/auth/login', { username: 'student-test', password: 'New-local-test-password-172!' });
+  await guest.request('/auth/logout', {}); assert.equal((await guest.request('/me')).user, null);
+  const savedPasswords = JSON.parse(sql('SELECT password_hash,password_salt FROM users;'))[0].results;
+  assert.ok(savedPasswords.every(row => row.password_hash.length === 64 && row.password_hash !== password && row.password_salt !== password));
+  assert.equal(new Set(savedPasswords.map(row => row.password_salt)).size, savedPasswords.length);
+  console.log('PASS salted password storage, password change, session revocation and logout');
+
+  const executablePath = process.env.CHROMIUM_PATH || ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome'].find(existsSync);
+  assert.ok(executablePath, 'Install Chromium or set CHROMIUM_PATH.');
+  browser = await chromium.launch({ executablePath, headless: true, args: ['--disable-dev-shm-usage'] });
+  const context = await browser.newContext(); const page = await context.newPage(); const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto(base); assert.equal(await page.getByRole('button', { name: 'Správa obsahu', exact: true }).count(), 0);
+  await page.getByRole('button', { name: 'Přihlásit se', exact: true }).click();
+  await page.getByLabel('Uživatelské jméno', { exact: true }).fill('editor-test'); await page.getByLabel('Heslo', { exact: true }).fill(password);
+  await page.getByRole('dialog').getByRole('button', { name: 'Přihlásit se', exact: true }).click();
+  await page.getByRole('button', { name: 'Správa obsahu', exact: true }).click();
+  await page.getByRole('button', { name: 'Načíst koncept', exact: true }).click();
+  await page.getByLabel('Otázka', { exact: true }).fill('Zveřejněná otázka z webového editoru');
+  await page.getByRole('button', { name: 'Uložit koncept na server', exact: true }).click();
+  await page.getByText('Koncept uložen na serveru.', { exact: false }).waitFor();
+  await page.getByRole('button', { name: 'Zveřejnit pro všechny', exact: true }).click();
+  await page.getByText('Zveřejněno pro všechny.', { exact: false }).waitFor();
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Začít trénink', exact: true }).click();
+  await page.getByRole('heading', { name: 'Zveřejněná otázka z webového editoru', exact: true }).waitFor();
+  assert.equal((await guest.request('/content')).systems[0].levels[0].questions[0].prompt, 'Zveřejněná otázka z webového editoru');
+  assert.deepEqual(errors, []); console.log('PASS browser login and editing/publishing visible to all players');
+  const otherTab = await context.newPage(); await otherTab.goto(base);
+  await otherTab.getByRole('button', { name: 'Můj účet', exact: true }).click();
+  await otherTab.getByRole('button', { name: 'Odhlásit se', exact: true }).click();
+  await page.getByRole('button', { name: 'Přihlásit se', exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Správa obsahu', exact: true }).count(), 0);
+  console.log('PASS logout synchronizes the account across browser tabs');
+  const adminContext = await browser.newContext(); const adminPage = await adminContext.newPage();
+  adminPage.on('pageerror', error => errors.push(error.message));
+  await adminPage.goto(base); await adminPage.getByRole('button', { name: 'Přihlásit se', exact: true }).click();
+  await adminPage.getByLabel('Uživatelské jméno', { exact: true }).fill('admin-test'); await adminPage.getByLabel('Heslo', { exact: true }).fill(password);
+  await adminPage.getByRole('dialog').getByRole('button', { name: 'Přihlásit se', exact: true }).click();
+  await adminPage.getByRole('button', { name: 'Můj účet', exact: true }).click(); await adminPage.getByRole('button', { name: 'Načíst uživatele', exact: true }).click();
+  await adminPage.getByLabel('Role uživatele student-test', { exact: true }).selectOption('editor');
+  await adminPage.waitForFunction(() => document.querySelector('[aria-label="Role uživatele student-test"]')?.disabled === false);
+  assert.equal((await student.request('/me')).user.role, 'editor');
+  await adminPage.setViewportSize({ width: 390, height: 844 });
+  assert.ok(await adminPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  console.log('PASS administrator assigns roles through the web and mobile account layout fits');
+  const studentContext = await browser.newContext(); const studentPage = await studentContext.newPage();
+  studentPage.on('pageerror', error => errors.push(error.message));
+  await studentPage.goto(base); await studentPage.getByRole('button', { name: 'Přihlásit se', exact: true }).click();
+  await studentPage.getByRole('button', { name: 'Vytvořit nový účet', exact: true }).click();
+  await studentPage.getByLabel('Uživatelské jméno', { exact: true }).fill('web-student'); await studentPage.getByLabel('Heslo', { exact: true }).fill(password);
+  await studentPage.getByRole('button', { name: 'Vytvořit účet', exact: true }).click();
+  await studentPage.getByRole('button', { name: 'Můj účet', exact: true }).waitFor();
+  assert.equal(await studentPage.getByRole('button', { name: 'Správa obsahu', exact: true }).count(), 0);
+  assert.deepEqual(errors, []); console.log('PASS browser registration keeps student permissions');
+  for (let i = 0; i < 10; i++) await client().request('/auth/login', { username: 'unknown-user', password }, 401);
+  await client().request('/auth/login', { username: 'unknown-user', password }, 429);
+  await admin.request('/admin/role', { userId: editorUser.id, role: 'student' });
+  await editor.request('/editor/draft', undefined, 403);
+  console.log('PASS login throttling and immediate permission revocation');
+} finally {
+  if (browser) await browser.close();
+  if (server && server.exitCode === null) { const ended = once(server, 'exit'); server.kill('SIGTERM'); await ended; }
+  rmSync(dir, { recursive: true, force: true });
+}

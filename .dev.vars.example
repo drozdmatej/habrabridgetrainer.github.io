@@ -1,0 +1,3 @@
+# Copy to .dev.vars for local development only. Do not commit .dev.vars.
+# Generate a private value: node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))"
+PASSWORD_PEPPER=
