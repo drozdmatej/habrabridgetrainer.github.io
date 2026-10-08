@@ -44,10 +44,12 @@ Otázky upravujte v `content/trainer.json` nebo přes správu obsahu v aplikaci.
 Editor ukládá místní koncept, který lze exportovat; samotný export web nezmění.
 Po nahrazení zdrojového JSON je nutné znovu sestavit `docs`.
 
-Postup, výsledky a chybné odpovědi se ukládají v prohlížeči pro každý systém
-zvlášť. Starší postup se převádí do základní Lepší levné. Opakování chyb
+Přihlášeným uživatelům na Cloudflare se postup, výsledky, chyby a historie
+jednotlivých úloh synchronizují mezi zařízeními. Hostům a na GitHub Pages
+zůstává ukládání v prohlížeči pro každý systém zvlášť. Starší postup se převádí do základní Lepší levné. Opakování chyb
 neodemkne další kapitolu: k tomu je třeba úspěšný test. Mazání dat prohlížeče
-odstraní i místní postup. Přehled doporučuje další lekci nebo test a umožňuje
+odstraní místní postup a neodeslané odpovědi; synchronizované výsledky účtu
+zůstanou na serveru. Přehled doporučuje další lekci nebo test a umožňuje
 filtrovat odemčené, nedokončené kapitoly a kapitoly s chybami. Ukazatel postupu
 počítá úspěšné testy, nikoli jen projité tréninky.
 
@@ -63,3 +65,9 @@ Náhodné příklady míchají tréninkové otázky vybraného systému. Lze vyb
 se otázky neopakují; samostatné testové otázky se do směsi nezařazují. Odpovědi
 a chyby se zaznamenají ke zdrojovým kapitolám, ale tato volná forma tréninku
 nemění splnění lekcí a testů ani odemčení kapitol.
+
+Chytré opakování používá stejný výběr počtu úloh a kapitol jako náhodné příklady.
+Přednost mají aktuální chyby, následně otázky s uplynulým termínem opakování,
+potom nové otázky. Správné odpovědi prodlužují interval na 1, 3, 7, 14 a 30 dní;
+chyba jej vrací na okamžité opakování. Když vybraná sada potřebuje více otázek,
+doplní se méně procvičené příklady. Ani chytré opakování neodemkne kapitoly.

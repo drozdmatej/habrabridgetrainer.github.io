@@ -114,3 +114,7 @@ a.nav-button { text-decoration: none; }
 .random-controls p { margin:0; }
 @media (max-width:800px) { .random-practice { grid-template-columns:1fr; gap:14px; } }
 @media (max-width:560px) { .random-practice { padding:18px; } .random-controls { grid-template-columns:1fr; } }
+
+.smart-practice { grid-column:1/-1; border-top:1px solid var(--line); padding-top:18px; }
+.smart-practice h3 { font-family:Georgia,serif; font-size:22px; margin:0; font-weight:500; }
+.sync-status { overflow-wrap:anywhere; }

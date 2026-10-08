@@ -4,8 +4,9 @@ Produkční web: https://habra-editor.drozdmatej09.workers.dev
 
 Worker obsluhuje web i API na jedné doméně. Binding `DB` odkazuje na existující
 Cloudflare D1 `habra-bridge-auth` (`52484814-e319-43da-a95f-ae460f158227`).
-Účty a historie obsahu jsou v databázi. Výsledky tréninku jsou zatím místní,
-oddělené pro přihlášené účty a hosta; mezi zařízeními se nesynchronizují.
+Účty, historie obsahu a postup přihlášených uživatelů jsou v databázi. Postup
+a historie úloh se synchronizují mezi zařízeními. Host má samostatný místní
+postup, který se automaticky nepřipisuje přihlášenému účtu.
 GitHub Pages dál podporují dosavadní trénink a místní editor/export, ale samotné
 GitHub Pages neumějí provozovat přihlášení ani společné ukládání.
 
@@ -178,3 +179,33 @@ veřejného zdrojového repozitáře, upravuj jej ve sdíleném editoru Cloudfla
 Migrace `0002_system_access.sql` přidává přístupy a jejich audit bez změny
 existujících účtů a obsahu. Nasazovací skript aplikuje chybějící migrace před
 nasazením Workeru; před aktualizací uchovej zálohu D1.
+
+
+## Synchronizace a chytré opakování
+
+Každé zařízení má pro přihlášený účet vlastní repliku v `progress_replicas`
+(migrace `0003_progress_sync.sql`). API `/api/progress` vyžaduje přihlášení;
+zápis navíc kontroluje CSRF, původ, strukturu a verzi. Replika má stabilní UUID
+v místním úložišti. Opakované odeslání se nezapočítá znovu; různé repliky se sčítají.
+Splnění kapitol a nejlepší skóre se slučují bez regrese, stav chyby určuje poslední
+odpověď na danou otázku. Čas odpovědi pochází z hodin zařízení.
+
+Při prvním použití se jednou importuje dřívější postup uložený **pod tímto účtem**.
+Starší souhrny nemají historii jednotlivých odpovědí; jejich počty a splnění se
+zachovají, podrobná historie přibývá od této verze. Importní značka zabraňuje
+opětovnému importu agregované mezipaměti. Poškozená data se zálohují místně.
+
+Aktualizace jsou průběžně odesílány po odpovědi a dokončení kapitoly. Obnova
+probíhá při návratu do okna, obnovení spojení a každých 30 sekund. V přehledu je
+stav synchronizace. Výpadek API nebrání práci s již načtenými úlohami: odpovědi
+zůstávají ve frontě v prohlížeči a po návratu spojení se odešlou. Pokud prohlížeč
+zakáže úložiště, neodeslané odpovědi vydrží pouze v paměti otevřené stránky.
+Synchronizace přenáší dokončený postup, nikoli rozpracovaný pokus ani výběr systému
+v právě otevřeném okně. GitHub Pages účet ani synchronizaci neposkytují.
+
+Historie jednotlivých úloh eviduje pokusy, chyby, poslední odpověď, sérii správných
+řešení a termín dalšího opakování. Chytré opakování řadí aktuální chyby před
+odložené opakování, nové otázky a nedávno zvládnuté otázky. Správné odpovědi
+postupně nastavují intervaly 1, 3, 7, 14, 30 dní; chybná odpověď interval resetuje.
+Nedávno zvládnuté úlohy doplní sadu, pokud prioritních otázek není dostatek.
+Samostatné testové otázky zůstávají mimo směs a procvičování nemění odemčení kapitol.

@@ -5,11 +5,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 
 export type AccountUser = { id: string; username: string; name: string; role: "student" | "editor" | "admin" };
 export type AccountState = { user: AccountUser | null; csrfToken: string | null; loginAvailable: boolean };
+export class ApiError extends Error { constructor(message: string, public status: number) { super(message); } }
 export async function api<T>(path: string, csrfToken?: string | null, input?: unknown): Promise<T> {
   const response = await fetch(`/api${path}`, { credentials: "same-origin", cache: "no-store", method: input === undefined ? "GET" : "POST", headers: input === undefined ? {} : { "Content-Type": "application/json", "X-CSRF-Token": csrfToken || "" }, body: input === undefined ? undefined : JSON.stringify(input) });
   if (!response.headers.get("Content-Type")?.includes("application/json")) throw new Error("Serverové rozhraní není dostupné.");
   const value = await response.json();
-  if (!response.ok) throw new Error(value.error || "Požadavek selhal.");
+  if (!response.ok) throw new ApiError(value.error || "Požadavek selhal.", response.status);
   return value as T;
 }
 type AccountContextValue = { enabled: boolean; state: AccountState; setState: (state: AccountState) => void };
@@ -61,7 +62,7 @@ export function AccountPanel({ open, onOpenChange }: { open: boolean; onOpenChan
     <DialogHeader><DialogTitle>{state.user ? "Můj účet" : register ? "Vytvořit účet" : "Přihlášení"}</DialogTitle><DialogDescription>{state.user ? `${state.user.username} · ${roleLabels[state.user.role]}` : "Trénovat můžeš i bez účtu. Úpravy společných otázek jsou dostupné editorům a správcům."}</DialogDescription></DialogHeader>
     {state.user ? <>
       <p>Přihlášený uživatel: <strong>{state.user.name}</strong></p>
-      <p>Výsledky tréninku se zatím ukládají pro tento účet v tomto prohlížeči.</p>
+      <p>Výsledky tréninku se synchronizují s tímto účtem mezi zařízeními. Při výpadku spojení zůstávají neodeslané odpovědi v tomto prohlížeči.</p>
       <details><summary>Změnit heslo</summary><form className="account-form" onSubmit={event => {
         event.preventDefault(); const form = event.currentTarget; const data = new FormData(form);
         void perform(async () => {

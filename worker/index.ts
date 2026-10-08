@@ -1,3 +1,4 @@
+import { progressStoreSchema, replicaSchema, mergeSameReplica } from "../app/progress";
 import type { TrainerContent } from "../app/types";
 import { contentSchema, publicationIssues, publishedContent } from "../app/content-validation";
 
@@ -124,6 +125,22 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
       env.DB.prepare("INSERT INTO system_access_changes(actor_id,user_id,system_id,allowed,created_at) VALUES(?,?,?,?,?)").bind(current.id, input.userId, input.systemId, input.allowed === null ? null : Number(input.allowed), now())
     ]);
     return json({ ok: true });
+  }
+  if (path === "/api/progress" && (request.method === "GET" || request.method === "POST")) {
+    const current = authorize(request, env, user, roles);
+    if (request.method === "POST") {
+      const input = await body(request);
+      const parsed = replicaSchema.strict().safeParse(input);
+      if (!parsed.success) throw new HttpError(400, "Neplatný postup tréninku.");
+      const replica = parsed.data;
+      const saved = await env.DB.prepare("SELECT revision,store_json FROM progress_replicas WHERE user_id=? AND device_id=?").bind(current.id, replica.deviceId).first<{ revision: number; store_json: string }>();
+      if ((saved?.revision || 0) !== replica.revision) throw new HttpError(409, "Postup změnilo jiné okno. Synchronizace se zopakuje.");
+      const merged = saved ? mergeSameReplica(progressStoreSchema.parse(JSON.parse(saved.store_json)), replica.store) : replica.store;
+      const result = await env.DB.prepare("INSERT INTO progress_replicas(user_id,device_id,revision,store_json,updated_at) VALUES(?,?,1,?,?) ON CONFLICT(user_id,device_id) DO UPDATE SET revision=progress_replicas.revision+1,store_json=excluded.store_json,updated_at=excluded.updated_at WHERE progress_replicas.revision=?").bind(current.id, replica.deviceId, JSON.stringify(merged), now(), replica.revision).run();
+      if (!result.meta.changes) throw new HttpError(409, "Postup změnilo jiné okno. Synchronizace se zopakuje.");
+    }
+    const rows = (await env.DB.prepare("SELECT device_id,revision,store_json FROM progress_replicas WHERE user_id=? ORDER BY device_id").bind(current.id).all<{ device_id: string; revision: number; store_json: string }>()).results;
+    return json(rows.map(row => ({ deviceId: row.device_id, revision: row.revision, store: JSON.parse(row.store_json) })));
   }
   if (path === "/api/me" && request.method === "GET") return json({ user: user ? { id: user.id, username: user.username, name: user.name, role: user.role } : null, csrfToken: user?.csrf_token || null, loginAvailable: !!env.PASSWORD_PEPPER && env.PASSWORD_PEPPER.length >= 32 });
   if (path === "/api/auth/logout" && request.method === "POST") {

@@ -242,6 +242,18 @@ try {
   assert.equal(await randomPage.locator('.locked-label').count(), 1);
   await randomPage.setViewportSize({ width: 360, height: 800 });
   assert.equal(await randomPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  randomPage.once('dialog', dialog => dialog.accept());
+  await randomPage.getByRole('button', { name: 'Spustit chytré opakování', exact: true }).click();
+  assert.equal(await randomPage.locator('.question-heading').innerText(), wrongPrompt);
+  for (let i = 0; i < 4; i++) {
+    await randomPage.locator('.choices .choice').first().click();
+    await randomPage.getByRole('button', { name: /Další úloha|Zobrazit výsledek/ }).click();
+  }
+  await randomPage.getByText('Chytré opakování dokončeno', { exact: true }).waitFor();
+  const afterReview = await randomPage.evaluate(key => JSON.parse(localStorage.getItem(key)).systems['lepsi-levna'], progressKey);
+  assert.deepEqual(afterReview.levels, {});
+  assert.deepEqual(afterReview.mistakes[wrong.level.id], []);
+  assert.ok(afterReview.questionStats[wrong.level.id][wrong.question.id].dueAt > Date.now());
   await randomContext.close();
   console.log('PASS random system examples, scopes/count limits, no repeats, separate test exclusion, pause/resume, chapter-specific mistakes and unchanged chapter locks');
 

@@ -1,10 +1,16 @@
+import { useCloudProgress } from "./use-cloud-progress";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { readStoredProgress, updateStoredProgress } from "./progress";
 import type { ProgressStore } from "./progress";
 
 const unavailable = "Prohlížeč neumožňuje ukládání. Můžeš trénovat, ale po zavření se postup nemusí zachovat.";
 
-export function useProgress(firstSystemId: string, key: string) {
+export function useProgress(firstSystemId: string, key: string, cloud?: { csrfToken: string | null }) {
+  const remote = useCloudProgress(firstSystemId, key, !!cloud, cloud?.csrfToken || null);
+  const local = useLocalProgress(firstSystemId, key, !cloud);
+  return cloud ? remote : { ...local, syncStatus: null };
+}
+function useLocalProgress(firstSystemId: string, key: string, enabled: boolean) {
   const [store, setStore] = useState<ProgressStore>({ selectedSystemId: firstSystemId, systems: {} });
   const current = useRef(store);
   const pending = useRef(Promise.resolve());
@@ -13,6 +19,7 @@ export function useProgress(firstSystemId: string, key: string) {
   const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     mounted.current = true;
     try {
       const result = readStoredProgress(localStorage, key, firstSystemId);
@@ -33,7 +40,7 @@ export function useProgress(firstSystemId: string, key: string) {
     }
     window.addEventListener("storage", sync);
     return () => { mounted.current = false; window.removeEventListener("storage", sync); };
-  }, [firstSystemId, key]);
+  }, [firstSystemId, key, enabled]);
 
   const update = useCallback((change: (store: ProgressStore) => ProgressStore) => {
     pending.current = pending.current.then(async () => {
@@ -52,7 +59,7 @@ export function useProgress(firstSystemId: string, key: string) {
       if (navigator.locks) await navigator.locks.request(`habra:${key}`, commit);
       else commit();
     }).catch(() => { if (mounted.current) setWarning(unavailable); });
-  }, [firstSystemId, key]);
+  }, [firstSystemId, key, enabled]);
 
   return { store, update, loaded, warning };
 }
