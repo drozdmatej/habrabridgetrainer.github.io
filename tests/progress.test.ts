@@ -101,3 +101,15 @@ test('test shuffle retains each question exactly once without changing content o
   assert.notDeepEqual(shuffled, questions);
   assert.deepEqual(questions, ['a', 'b', 'c', 'd']);
 });
+
+
+test('zero-score test is distinguishable from an unattempted test and survives storage', () => {
+  const lesson = completeLevel(emptyProgress(), 'a', 'lesson', 0, 4, 80);
+  assert.equal(lesson.levels.a.testAttempted, false);
+  const failed = completeLevel(lesson, 'a', 'test', 0, 4, 80);
+  const saved = restoreProgress(JSON.stringify({ selectedSystemId: 's', systems: { s: failed } }), null, 's');
+  assert.equal(saved.systems.s.levels.a.testAttempted, true);
+  assert.equal(saved.systems.s.levels.a.bestScore, 0);
+  assert.equal(saved.systems.s.levels.a.testPassed, false);
+  assert.equal(completeLevel(failed, 'a', 'lesson', 4, 4, 80).levels.a.testAttempted, true);
+});

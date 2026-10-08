@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const count = z.number().int().nonnegative();
 const progressSchema = z.object({
-  levels: z.record(z.object({ lessonCompleted: z.boolean(), testPassed: z.boolean(), bestScore: z.number().min(0).max(100) })),
+  levels: z.record(z.object({ lessonCompleted: z.boolean(), testPassed: z.boolean(), bestScore: z.number().min(0).max(100), testAttempted: z.boolean().optional() })),
   answered: count,
   correct: count,
   mistakes: z.record(z.array(z.string())).default({}),
@@ -78,6 +78,7 @@ export function completeLevel(progress: ProgressState, levelId: string, mode: "l
   return { ...progress, levels: { ...progress.levels, [levelId]: {
     lessonCompleted: previous.lessonCompleted || mode === "lesson",
     testPassed: previous.testPassed || (mode === "test" && passesTest(score, total, passingPercent)),
+    testAttempted: previous.testAttempted || mode === "test",
     bestScore: mode === "test" ? Math.max(previous.bestScore, scorePercent(score, total)) : previous.bestScore,
   } } };
 }

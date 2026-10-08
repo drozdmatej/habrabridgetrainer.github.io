@@ -24,7 +24,8 @@ pnpm build
 `pnpm test:browser` potřebuje nainstalovaný Chromium. Můžeš nastavit `CHROMIUM_PATH`
 na jeho spustitelný soubor. Test si spustí vlastní Vite na portu 5180 a po dokončení
 jej ukončí. Ověřuje souběžná okna, obnovu poškozených dat, editor, mobilní rozložení
-a všech deset nových kapitol včetně testů.
+a všech deset nových kapitol včetně testů. Kontroluje také skutečný postup,
+filtry kapitol, pozastavení pokusu a návaznost tréninku, testu a další kapitoly.
 
 `pnpm-workspace.yaml` povoluje instalační skripty esbuild a Cloudflare workerd.
 Sestavení spouští TypeScript a kontrolu zveřejňovaného obsahu; neplatné otázky
@@ -43,6 +44,13 @@ Po nahrazení zdrojového JSON je nutné znovu sestavit `docs`.
 Postup, výsledky a chybné odpovědi se ukládají v prohlížeči pro každý systém
 zvlášť. Starší postup se převádí do základní Lepší levné. Opakování chyb
 neodemkne další kapitolu: k tomu je třeba úspěšný test. Mazání dat prohlížeče
-odstraní i místní postup.
+odstraní i místní postup. Přehled doporučuje další lekci nebo test a umožňuje
+filtrovat odemčené, nedokončené kapitoly a kapitoly s chybami. Ukazatel postupu
+počítá úspěšné testy, nikoli jen projité tréninky.
+
+Rozpracovaný pokus lze pozastavit a obnovit při pohybu uvnitř aplikace.
+Samotný pokus zůstává v paměti otevřené stránky; obnovení nebo zavření stránky
+je ukončí. Již zaznamenané odpovědi a dokončené kapitoly zůstávají uložené.
+Před nahrazením pokusu novým tréninkem či změnou systému aplikace upozorní.
 
 Přehled nalezených vad, oprav a dalších doporučení je v [CODE_REVIEW.md](CODE_REVIEW.md).

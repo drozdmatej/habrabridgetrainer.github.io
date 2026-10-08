@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright-core';
 
@@ -20,7 +20,7 @@ async function poll(read, expected) {
   assert.deepEqual(await read(), expected);
 }
 const bidName = bid => ['PASS', 'X', 'XX'].includes(bid) ? ({ PASS: 'PASS', X: 'KONTRA', XX: 'REKONTRA' }[bid]) : bid.replace('C', '♣').replace('D', '♦').replace('H', '♥').replace('S', '♠');
-async function finish(page, questions) {
+async function finish(page, questions, returnToOverview = true) {
   for (let i = 0; i < questions.length; i++) {
     const prompt = await page.locator('.question-heading').innerText();
     const question = questions.find(q => q.prompt === prompt);
@@ -31,7 +31,7 @@ async function finish(page, questions) {
   }
   await page.locator('.summary-card').waitFor();
   assert.equal(await page.locator('.summary-card h1').innerText(), '100 %');
-  await page.getByRole('button', { name: 'Zpět ke kapitolám', exact: true }).click();
+  if (returnToOverview) await page.getByRole('button', { name: 'Zpět ke kapitolám', exact: true }).click();
 }
 
 try {
@@ -49,6 +49,61 @@ try {
   context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
   const a = await context.newPage(), b = await context.newPage();
   await a.goto(base); await b.goto(base);
+  const studentContext = await browser.newContext();
+  const student = await studentContext.newPage();
+  student.on('pageerror', error => errors.push(error.message));
+  await student.goto(base);
+  const progressBar = student.getByRole('progressbar', { name: 'Splněné kapitoly', exact: true });
+  assert.equal(await progressBar.getAttribute('value'), '0');
+  assert.equal(await progressBar.getAttribute('max'), String(content.systems[0].levels.length));
+  await student.getByRole('button', { name: 'Odemčené', exact: true }).click();
+  assert.equal(await student.locator('.level-card').count(), 1);
+  await student.getByRole('button', { name: 'S chybami', exact: true }).click();
+  await student.getByRole('heading', { name: 'Žádné chyby k procvičení' }).waitFor();
+  await student.getByRole('button', { name: 'Všechny', exact: true }).click();
+  await student.getByRole('button', { name: 'Začít první lekci', exact: true }).click();
+  const originalPrompt = await student.locator('.question-heading').innerText();
+  await student.getByRole('button', { name: 'PASS', exact: true }).click();
+  assert.equal(await student.getByRole('progressbar', { name: 'Vyřešené úlohy v pokusu' }).getAttribute('aria-valuenow'), '1');
+  await student.getByRole('button', { name: '← Pozastavit', exact: true }).click();
+  await student.getByRole('button', { name: 'Pokračovat v pokusu', exact: true }).click();
+  assert.equal(await student.locator('.question-heading').innerText(), originalPrompt);
+  await student.locator('.feedback').waitFor();
+  assert.equal(await student.evaluate(key => JSON.parse(localStorage.getItem(key)).systems['lepsi-levna'].answered, progressKey), 1);
+  await student.getByRole('button', { name: 'Další úloha', exact: true }).click();
+  await student.getByRole('button', { name: '← Pozastavit', exact: true }).click();
+  student.once('dialog', dialog => dialog.dismiss());
+  await student.locator('#training-system').selectOption('epstein-precision');
+  assert.equal(await student.locator('#training-system').inputValue(), 'lepsi-levna');
+  await student.getByRole('button', { name: 'Pokračovat v pokusu', exact: true }).click();
+  for (const question of content.systems[0].levels[0].questions.slice(1)) {
+    if (question.type === 'bid_box') await student.getByRole('button', { name: bidName(question.correctBid), exact: true }).click();
+    else await student.locator('.choices .choice').nth(question.options.findIndex(o => o.correct)).click();
+    await student.getByRole('button', { name: /Další úloha|Zobrazit výsledek/ }).click();
+  }
+  await student.getByRole('button', { name: 'Spustit test', exact: true }).click();
+  await finish(student, content.systems[0].levels[0].questions, false);
+  await student.getByRole('button', { name: 'Další kapitola', exact: true }).click();
+  assert.equal(await student.locator('.question-heading').innerText(), content.systems[0].levels[1].questions[0].prompt);
+  await student.getByRole('button', { name: '← Pozastavit', exact: true }).click();
+  assert.equal(await progressBar.getAttribute('value'), '1');
+  await student.getByRole('button', { name: 'Nedokončené', exact: true }).click();
+  assert.equal(await student.locator('.level-card').count(), content.systems[0].levels.length - 1);
+  await student.getByRole('button', { name: 'Všechny', exact: true }).click();
+  if (process.env.HABRA_SCREENSHOT_DIR) {
+    mkdirSync(process.env.HABRA_SCREENSHOT_DIR, { recursive: true });
+    await student.evaluate(() => window.scrollTo(0, 0));
+    await student.screenshot({ path: process.env.HABRA_SCREENSHOT_DIR + '/student-desktop.png', fullPage: true });
+  }
+  await student.setViewportSize({ width: 360, height: 800 });
+  assert.equal(await progressBar.isVisible(), true);
+  assert.equal(await student.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  if (process.env.HABRA_SCREENSHOT_DIR) {
+    await student.evaluate(() => window.scrollTo(0, 0));
+    await student.screenshot({ path: process.env.HABRA_SCREENSHOT_DIR + '/student-mobile.png', fullPage: true });
+  }
+  await studentContext.close();
+  console.log('PASS accurate progress, filters, pause/resume without duplicate answers, cancelled system change, summary actions and mobile dashboard');
   const chapter = content.systems[0].levels[2];
   await a.getByLabel('Hledat kapitolu', { exact: true }).fill(chapter.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase());
   assert.equal(await a.locator('.level-card').count(), 1);
@@ -68,6 +123,7 @@ try {
   await Promise.all([a.getByRole('button', { name: '1♣', exact: true }).click(), b.getByRole('button', { name: 'PASS', exact: true }).click()]);
   await poll(() => a.evaluate(key => { const p = JSON.parse(localStorage.getItem(key)).systems['lepsi-levna']; return [p.answered, p.correct]; }, progressKey), [2, 1]);
   await b.getByRole('button', { name: 'Přejít na přehled lekcí', exact: true }).click();
+  b.once('dialog', dialog => dialog.accept());
   await b.locator('#training-system').selectOption('epstein-precision');
   await b.getByRole('heading', { name: 'Epstein Precision, krok za krokem.' }).waitFor();
   await a.getByRole('button', { name: 'Další úloha', exact: true }).click();
@@ -141,6 +197,8 @@ try {
       console.log('PASS new lesson and test:', system.name, '/', chapter.title);
     }
   }
+  assert.equal(await lessons.getByRole('progressbar', { name: 'Splněné kapitoly', exact: true }).getAttribute('value'), String(content.systems.at(-1).levels.length));
+  await lessons.getByRole('heading', { name: 'Všechny testy máš splněné' }).waitFor();
   await lessons.setViewportSize({ width: 360, height: 800 });
   assert.equal(await lessons.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await lessons.getByRole('button', { name: 'Výsledky', exact: true }).click();
