@@ -197,6 +197,54 @@ try {
   await custom.close();
   console.log('PASS separate test bank, configured question count/order and optional lesson prerequisite');
 
+  const randomContent = structuredClone(content);
+  randomContent.systems[0].levels = [0, 1].map(chapter => ({ id: 'random-level-' + chapter, title: 'Téma ' + chapter, description: 'Náhodný trénink', passingPercent: 80,
+    questions: [0, 1].map(index => ({ id: 'shared-question-' + index, type: 'choice', sequence: [], prompt: `Téma ${chapter}, příklad ${index}`, rationale: 'Vysvětlení náhodného příkladu.', options: [{ id: 'yes', text: 'Správně', correct: true }, { id: 'no', text: 'Nesprávně', correct: false }] })),
+    test: { source: 'separate', questions: [{ id: 'test-only-' + chapter, type: 'bid_box', sequence: [], prompt: 'Jen pro test', correctBid: 'PASS', rationale: 'Testová otázka.' }] }
+  }));
+  const randomContext = await browser.newContext();
+  const randomPage = await randomContext.newPage();
+  randomPage.on('pageerror', error => errors.push(error.message));
+  await randomPage.route('**/content/trainer.json', route => route.fulfill({ json: randomContent }));
+  await randomPage.goto(base);
+  await randomPage.getByLabel('Kapitoly pro náhodné příklady', { exact: true }).selectOption('unlocked');
+  await randomPage.getByLabel('Počet náhodných příkladů', { exact: true }).selectOption('5');
+  await randomPage.getByRole('button', { name: 'Spustit náhodné příklady', exact: true }).click();
+  assert.equal(await randomPage.getByRole('progressbar', { name: 'Vyřešené úlohy v pokusu' }).getAttribute('aria-valuemax'), '2');
+  await finish(randomPage, randomContent.systems[0].levels[0].questions);
+  await randomPage.getByLabel('Kapitoly pro náhodné příklady', { exact: true }).selectOption('all');
+  await randomPage.getByLabel('Počet náhodných příkladů', { exact: true }).selectOption('all');
+  await randomPage.getByRole('button', { name: 'Spustit náhodné příklady', exact: true }).click();
+  assert.equal(await randomPage.getByRole('progressbar', { name: 'Vyřešené úlohy v pokusu' }).getAttribute('aria-valuemax'), '4');
+  const seen = [], pool = randomContent.systems[0].levels.flatMap(level => level.questions.map(question => ({ level, question })));
+  const wrongPrompt = await randomPage.locator('.question-heading').innerText();
+  for (let i = 0; i < 4; i++) {
+    const prompt = await randomPage.locator('.question-heading').innerText();
+    assert.ok(pool.some(example => example.question.prompt === prompt)); seen.push(prompt);
+    await randomPage.locator('.choices .choice').nth(i === 0 ? 1 : 0).click();
+    if (i === 0) {
+      await randomPage.getByRole('button', { name: '← Pozastavit', exact: true }).click();
+      await randomPage.getByRole('button', { name: 'Pokračovat v pokusu', exact: true }).click();
+      assert.equal(await randomPage.locator('.question-heading').innerText(), prompt);
+      await randomPage.locator('.feedback').waitFor();
+    }
+    await randomPage.getByRole('button', { name: /Další úloha|Zobrazit výsledek/ }).click();
+  }
+  assert.equal(new Set(seen).size, 4);
+  assert.equal(await randomPage.locator('.summary-card h1').innerText(), '75 %');
+  const randomProgress = await randomPage.evaluate(key => JSON.parse(localStorage.getItem(key)).systems['lepsi-levna'], progressKey);
+  assert.equal(randomProgress.answered, 6); assert.equal(randomProgress.correct, 5);
+  assert.deepEqual(randomProgress.levels, {});
+  const wrong = pool.find(example => example.question.prompt === wrongPrompt);
+  assert.deepEqual(randomProgress.mistakes[wrong.level.id], [wrong.question.id]);
+  await randomPage.getByRole('button', { name: 'Nová náhodná sada', exact: true }).click();
+  await randomPage.getByRole('button', { name: '← Pozastavit', exact: true }).click();
+  assert.equal(await randomPage.locator('.locked-label').count(), 1);
+  await randomPage.setViewportSize({ width: 360, height: 800 });
+  assert.equal(await randomPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await randomContext.close();
+  console.log('PASS random system examples, scopes/count limits, no repeats, separate test exclusion, pause/resume, chapter-specific mistakes and unchanged chapter locks');
+
   const damagedContext = await browser.newContext();
   const damaged = await damagedContext.newPage();
   await damaged.addInitScript(key => localStorage.setItem(key, '{damaged'), progressKey);

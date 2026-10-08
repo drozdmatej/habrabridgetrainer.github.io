@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, BookOpen, ChevronRight, LockKeyhole, Play, Settings2, ShieldCheck, Trophy, UserRound } from "lucide-react";
+import { BarChart3, BookOpen, ChevronRight, LockKeyhole, Play, Settings2, ShieldCheck, Trophy, UserRound, Shuffle } from "lucide-react";
 import AdminPanel from "./admin-panel";
 import { QuestionCard } from "./question-card";
-import { emptyProgress, recordAnswer, shuffle, passesTest, completeLevel, scorePercent } from "./progress";
+import { emptyProgress, recordAnswer, shuffle, passesTest, completeLevel, scorePercent, practicePool, randomExamples } from "./progress";
 import type { ProgressState } from "./progress";
 import { useProgress } from "./use-progress";
 import { AccountPanel, useAccount } from "./account";
@@ -63,7 +63,10 @@ function TrainerSession({ initialContent }: { initialContent: TrainerContent }) 
   }
   const [view, setView] = useState<View>("levels");
   const [level, setLevel] = useState<TrainerLevel | null>(null);
-  const [mode, setMode] = useState<"lesson" | "test" | "review">("lesson");
+  const [randomCount, setRandomCount] = useState<number | "all">(10);
+  const [randomScope, setRandomScope] = useState<"all" | "unlocked">("all");
+  const [questionLevels, setQuestionLevels] = useState<TrainerLevel[]>([]);
+  const [mode, setMode] = useState<"lesson" | "test" | "review" | "random">("lesson");
   const [questions, setQuestions] = useState<TrainerQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -79,6 +82,8 @@ function TrainerSession({ initialContent }: { initialContent: TrainerContent }) 
     return ids;
   }, [progress.levels, system.levels]);
 
+  const randomPool = practicePool(system, randomScope === "unlocked" ? unlockedIds : undefined);
+  const currentLevel = mode === "random" ? questionLevels[questionIndex] : level;
   const mistakeCount = (item: TrainerLevel) => allLevelQuestions(item).filter(q => progress.mistakes[item.id]?.includes(q.id)).length;
   const totalMistakes = system.levels.reduce((sum, item) => sum + mistakeCount(item), 0);
   const trained = system.levels.filter(item => progress.levels[item.id]?.lessonCompleted).length;
@@ -110,15 +115,32 @@ function TrainerSession({ initialContent }: { initialContent: TrainerContent }) 
     window.scrollTo({ top: 0 });
   }
 
+  function beginRandom() {
+    if (!progressLoaded || !randomPool.length) return;
+    if (quizActive && !window.confirm("Začít novou náhodnou sadu a ukončit rozpracovaný pokus? Zaznamenané odpovědi zůstanou uložené.")) return;
+    const examples = randomExamples(randomPool, randomCount);
+    setQuestionLevels(examples.map(example => example.level));
+    setQuestions(examples.map(example => example.question));
+    setLevel(null); setMode("random"); setQuizActive(true);
+    answeredRef.current = false;
+    setQuestionIndex(0); setScore(0); setAnswer(null); setView("quiz");
+    window.scrollTo({ top: 0 });
+  }
+
   function choose(value: string, isCorrect: boolean) {
-    if (answeredRef.current || !level || !currentQuestion) return;
+    if (answeredRef.current || !currentLevel || !currentQuestion) return;
     answeredRef.current = true;
     setAnswer({ selected: value, correct: isCorrect });
     if (isCorrect) setScore((current) => current + 1);
-    setProgress(current => recordAnswer(current, level.id, currentQuestion.id, isCorrect));
+    setProgress(current => recordAnswer(current, currentLevel.id, currentQuestion.id, isCorrect));
   }
 
   function finish() {
+    if (mode === "random") {
+      setQuizActive(false);
+      setSummary({ percent: scorePercent(score, questions.length), passed: score === questions.length, correct: score, total: questions.length });
+      setView("summary"); return;
+    }
     if (!level) return;
     const percent = scorePercent(score, questions.length);
     const passed = mode === "lesson" || (mode === "review" ? score === questions.length : passesTest(score, questions.length, level.passingPercent));
@@ -185,9 +207,16 @@ function TrainerSession({ initialContent }: { initialContent: TrainerContent }) 
           </div>
           <div className="next-step">
             <p className="eyebrow">{quizActive ? "Rozpracovaný pokus" : recommended ? "Doporučený další krok" : "Systém dokončen"}</p>
-            <h2>{quizActive && level ? level.title : recommended?.title || "Všechny testy máš splněné"}</h2>
+            <h2>{quizActive ? mode === "random" ? "Náhodné příklady" : level?.title : recommended?.title || "Všechny testy máš splněné"}</h2>
             <p>{quizActive ? `Úloha ${questionIndex + 1} z ${questions.length}. Pokus zůstane rozpracovaný, dokud stránku nezavřeš nebo neobnovíš.` : recommended ? progress.levels[recommended.id]?.lessonCompleted ? `Trénink je hotový. V testu potřebuješ alespoň ${recommended.passingPercent} %.` : `${recommended.questions.length} úloh s vysvětlením. Potom následuje test.` : totalMistakes ? "Vrať se k úlohám, ve kterých jsi chyboval." : "Upevni si dražbu opakováním nebo si vyber další systém."}</p>
             {quizActive ? <button className="button button-primary" onClick={resume}><Play size={16}/>Pokračovat v pokusu</button> : recommended ? <button className="button button-primary" disabled={!progressLoaded} onClick={() => begin(recommended, progress.levels[recommended.id]?.lessonCompleted ? "test" : "lesson")}><Play size={16}/>{progress.levels[recommended.id]?.lessonCompleted ? "Spustit navazující test" : progress.answered ? "Pokračovat v tréninku" : "Začít první lekci"}</button> : <button className="button button-primary" onClick={() => setChapterFilter(totalMistakes ? "mistakes" : "all")}>Prohlédnout {totalMistakes ? "chyby" : "kapitoly"}</button>}
+          </div>
+        </section>
+        <section className="random-practice" aria-labelledby="random-practice-title"><div><p className="eyebrow">Volné procvičování</p><h2 id="random-practice-title"><Shuffle size={22}/>Náhodné příklady</h2><p>Smíchej tréninkové otázky z vybraného systému. Odpovědi se započítají do statistik a chyb, splnění kapitol zůstane stejné.</p></div>
+          <div className="random-controls"><label>Počet příkladů<select aria-label="Počet náhodných příkladů" value={randomCount} onChange={event => setRandomCount(event.target.value === "all" ? "all" : Number(event.target.value))}><option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="all">Všechny</option></select></label>
+            <label>Kapitoly<select aria-label="Kapitoly pro náhodné příklady" value={randomScope} onChange={event => setRandomScope(event.target.value as typeof randomScope)}><option value="all">Všechny kapitoly systému</option><option value="unlocked">Jen odemčené kapitoly</option></select></label>
+            <button className="button button-primary" disabled={!progressLoaded || !randomPool.length} onClick={beginRandom}><Shuffle size={16}/>Spustit náhodné příklady</button>
+            <p>{randomPool.length} dostupných úloh · bez opakování v jedné sadě.{randomCount !== "all" && randomCount > randomPool.length ? ` Vybereme všech ${randomPool.length} dostupných úloh.` : ""}</p>
           </div>
         </section>
         {system.difficulty && <span className="difficulty-badge">{difficultyLabels[system.difficulty]}</span>}
@@ -204,14 +233,16 @@ function TrainerSession({ initialContent }: { initialContent: TrainerContent }) 
         <LockedSystems content={content}/>
       </>}
 
-      {view === "quiz" && currentQuestion && level && <section className="quiz-wrap">
-        <div className="quiz-topline"><button className="text-button" onClick={() => setView("levels")}>← Pozastavit</button><span>{mode === "lesson" ? "Trénink" : mode === "review" ? "Opakování chyb" : "Test"} · {level.title}</span><strong>{questionIndex + 1}/{questions.length}</strong></div>
+      {view === "quiz" && currentQuestion && currentLevel && <section className="quiz-wrap">
+        <div className="quiz-topline"><button className="text-button" onClick={() => setView("levels")}>← Pozastavit</button><span>{mode === "lesson" ? "Trénink" : mode === "review" ? "Opakování chyb" : mode === "random" ? "Náhodné příklady" : "Test"} · {currentLevel.title}</span><strong>{questionIndex + 1}/{questions.length}</strong></div>
         <div className="progress-track" role="progressbar" aria-label="Vyřešené úlohy v pokusu" aria-valuemin={0} aria-valuemax={questions.length} aria-valuenow={questionIndex + (answer ? 1 : 0)}><span style={{width:`${((questionIndex + (answer ? 1 : 0))/questions.length)*100}%`}}/></div>
-        <p className="quiz-context">{mode === "test" ? `Pro splnění testu potřebuješ ${level.passingPercent} %.` : mode === "review" ? "Správnou odpovědí odstraníš úlohu ze seznamu chyb." : "Po každé odpovědi si přečti vysvětlení dražby."}</p>
-        <QuestionCard key={currentQuestion.id} question={currentQuestion} answer={answer} onChoose={choose} onNext={next} nextLabel={questionIndex + 1 === questions.length ? "Zobrazit výsledek" : "Další úloha"}/>
+        <p className="quiz-context">{mode === "test" ? `Pro splnění testu potřebuješ ${currentLevel.passingPercent} %.` : mode === "review" ? "Správnou odpovědí odstraníš úlohu ze seznamu chyb." : "Po každé odpovědi si přečti vysvětlení dražby."}</p>
+        <QuestionCard key={`${currentLevel.id}:${currentQuestion.id}`} question={currentQuestion} answer={answer} onChoose={choose} onNext={next} nextLabel={questionIndex + 1 === questions.length ? "Zobrazit výsledek" : "Další úloha"}/>
       </section>}
 
-      {view === "summary" && level && <section className="summary-card"><div className={`summary-icon ${summary.passed ? "pass":"fail"}`}><Trophy size={34}/></div><p className="eyebrow">{mode === "review" ? "Opakování dokončeno" : mode === "lesson" ? "Trénink dokončen" : summary.passed ? "Test splněn":"Ještě jednou"}</p><h1>{summary.percent} %</h1><p>{summary.correct} z {summary.total} správně</p><p>{mode === "review" ? "Správně vyřešené úlohy byly odebrány ze seznamu chyb. Opakování nemění výsledek testu ani odemčení kapitol." : mode === "lesson" ? "Prošel jsi celou kapitolu. Teď můžeš pokračovat do testu." : summary.passed ? nextChapter ? "Další kapitola je odemčená." : "Máš splněné všechny testy tohoto systému." : `K úspěchu potřebuješ alespoň ${level.passingPercent} %.`}</p><div>{mode === "lesson" && <button className="button button-primary" onClick={() => begin(level,"test")}>Spustit test<ChevronRight size={16}/></button>}{mode === "test" && summary.passed && nextChapter && <button className="button button-primary" onClick={() => begin(nextChapter,"lesson")}>Další kapitola<ChevronRight size={16}/></button>}{mode !== "review" && mistakeCount(level) > 0 && <button className="button button-secondary" onClick={() => begin(level,"review")}>Procvičit chyby ({mistakeCount(level)})</button>}<button className="button button-secondary" onClick={()=>begin(level,mode)} disabled={mode === "review" && !allLevelQuestions(level).some(q => progress.mistakes[level.id]?.includes(q.id))}>Zkusit znovu</button><button className="button button-secondary" onClick={()=>setView("levels")}>Zpět ke kapitolám</button></div></section>}
+      {view === "summary" && mode === "random" && <section className="summary-card"><div className="summary-icon pass"><Shuffle size={34}/></div><p className="eyebrow">Náhodné procvičování dokončeno</p><h1>{summary.percent} %</h1><p>{summary.correct} z {summary.total} správně · {system.name}</p><p>Odpovědi a chyby jsou zaznamenané u příslušných kapitol. Toto procvičování nemění splnění tréninku, testů ani odemčení kapitol.</p><div><button className="button button-primary" onClick={beginRandom}>Nová náhodná sada</button><button className="button button-secondary" onClick={() => setView("levels")}>Zpět ke kapitolám</button></div></section>}
+
+      {view === "summary" && mode !== "random" && level && <section className="summary-card"><div className={`summary-icon ${summary.passed ? "pass":"fail"}`}><Trophy size={34}/></div><p className="eyebrow">{mode === "review" ? "Opakování dokončeno" : mode === "lesson" ? "Trénink dokončen" : summary.passed ? "Test splněn":"Ještě jednou"}</p><h1>{summary.percent} %</h1><p>{summary.correct} z {summary.total} správně</p><p>{mode === "review" ? "Správně vyřešené úlohy byly odebrány ze seznamu chyb. Opakování nemění výsledek testu ani odemčení kapitol." : mode === "lesson" ? "Prošel jsi celou kapitolu. Teď můžeš pokračovat do testu." : summary.passed ? nextChapter ? "Další kapitola je odemčená." : "Máš splněné všechny testy tohoto systému." : `K úspěchu potřebuješ alespoň ${level.passingPercent} %.`}</p><div>{mode === "lesson" && <button className="button button-primary" onClick={() => begin(level,"test")}>Spustit test<ChevronRight size={16}/></button>}{mode === "test" && summary.passed && nextChapter && <button className="button button-primary" onClick={() => begin(nextChapter,"lesson")}>Další kapitola<ChevronRight size={16}/></button>}{mode !== "review" && mistakeCount(level) > 0 && <button className="button button-secondary" onClick={() => begin(level,"review")}>Procvičit chyby ({mistakeCount(level)})</button>}<button className="button button-secondary" onClick={()=>begin(level,mode)} disabled={mode === "review" && !allLevelQuestions(level).some(q => progress.mistakes[level.id]?.includes(q.id))}>Zkusit znovu</button><button className="button button-secondary" onClick={()=>setView("levels")}>Zpět ke kapitolám</button></div></section>}
 
       {view === "stats" && <section><div className="page-heading"><div><p className="eyebrow">Tvůj postup</p><h1>Výsledky · {system.name}</h1></div><button className="button button-secondary" onClick={()=>setView("levels")}>Zpět ke kapitolám</button></div><div className="stat-grid"><div><span>Vyřešené úlohy</span><strong>{progress.answered}</strong></div><div><span>Správně</span><strong>{progress.correct}</strong></div><div><span>Úspěšnost</span><strong>{progress.answered ? `${accuracy} %` : "—"}</strong></div><div><span>Složené testy</span><strong>{completed} / {system.levels.length}</strong></div></div><p className="stats-note">Úspěšnost zahrnuje všechny odpovědi včetně opakování. U kapitol je uveden nejlepší výsledek testu. Postup je uložený v tomto prohlížeči.</p>{!progress.answered && <div className="empty-state"><h2>Tvůj první trénink teprve začíná</h2><p>Vyber kapitolu a první odpovědi se objeví v přehledu.</p><button className="button button-primary" onClick={() => setView("levels")}>Vybrat kapitolu</button></div>}<div className="result-list">{system.levels.map((item,index)=>{ const state=progress.levels[item.id]; return <div key={item.id}><span>{index+1}</span><div><strong>{item.title}</strong><small>{state?.lessonCompleted ? "Trénink hotov":"Trénink čeká"} · {state?.testPassed ? "test splněn":state?.testAttempted || state?.bestScore ? "test zatím nesplněn" : "test čeká"}</small></div><div><b>{state?.testAttempted || state?.bestScore || state?.testPassed ? `${state.bestScore} %` : "—"}</b>{allLevelQuestions(item).some(q => progress.mistakes[item.id]?.includes(q.id)) && <button className="text-button" onClick={() => begin(item,"review")}>Procvičit chyby ({allLevelQuestions(item).filter(q => progress.mistakes[item.id]?.includes(q.id)).length})</button>}</div></div>; })}</div></section>}
     </main>

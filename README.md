@@ -57,3 +57,9 @@ je ukončí. Již zaznamenané odpovědi a dokončené kapitoly zůstávají ulo
 Před nahrazením pokusu novým tréninkem či změnou systému aplikace upozorní.
 
 Přehled nalezených vad, oprav a dalších doporučení je v [CODE_REVIEW.md](CODE_REVIEW.md).
+
+Náhodné příklady míchají tréninkové otázky vybraného systému. Lze vybrat 5, 10,
+20 nebo všechny otázky a všechny nebo jen odemčené kapitoly. V jedné sadě
+se otázky neopakují; samostatné testové otázky se do směsi nezařazují. Odpovědi
+a chyby se zaznamenají ke zdrojovým kapitolám, ale tato volná forma tréninku
+nemění splnění lekcí a testů ani odemčení kapitol.

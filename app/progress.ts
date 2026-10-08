@@ -1,3 +1,4 @@
+import type { TrainerLevel, TrainerQuestion, TrainerSystem } from "./types";
 import { z } from "zod";
 
 const count = z.number().int().nonnegative();
@@ -81,4 +82,15 @@ export function completeLevel(progress: ProgressState, levelId: string, mode: "l
     testAttempted: previous.testAttempted || mode === "test",
     bestScore: mode === "test" ? Math.max(previous.bestScore, scorePercent(score, total)) : previous.bestScore,
   } } };
+}
+
+export type PracticeExample = { level: TrainerLevel; question: TrainerQuestion };
+export function practicePool(system: TrainerSystem, unlockedIds?: ReadonlySet<string>): PracticeExample[] {
+  if (system.status !== "active") return [];
+  return system.levels.filter(level => level.status !== "draft" && (!unlockedIds || unlockedIds.has(level.id)))
+    .flatMap(level => level.questions.map(question => ({ level, question })));
+}
+export function randomExamples(pool: PracticeExample[], count: number | "all", random = Math.random): PracticeExample[] {
+  const shuffled = shuffle(pool, random);
+  return count === "all" ? shuffled : shuffled.slice(0, Math.max(0, Math.floor(count)));
 }
