@@ -2,7 +2,7 @@ import { fileURLToPath, URL } from "node:url";
 import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { contentSchema, publishedContent, publicationIssues } from "./app/content-validation";
+import { contentSchema, publicContent, publicationIssues } from "./app/content-validation";
 
 function getContent() {
   return contentSchema.parse(JSON.parse(readFileSync(new URL("./content/trainer.json", import.meta.url), "utf8")));
@@ -22,7 +22,7 @@ export default defineConfig({
           try {
             res.setHeader("Content-Type", "application/json; charset=utf-8");
             res.setHeader("Cache-Control", "no-store");
-            res.end(JSON.stringify(publishedContent(getContent())));
+            res.end(JSON.stringify(publicContent(getContent())));
           } catch { res.statusCode = 500; res.end("Obsah se nepodařilo načíst."); }
         });
       },
@@ -30,7 +30,7 @@ export default defineConfig({
         const content = getContent();
         const issues = publicationIssues(content);
         if (issues.length) this.error(issues.map(issue => `${issue.questionId || issue.levelId || "Obsah"}: ${issue.message}`).join("\n"));
-        this.emitFile({ type: "asset", fileName: "content/trainer.json", source: JSON.stringify(publishedContent(content), null, 2) });
+        this.emitFile({ type: "asset", fileName: "content/trainer.json", source: JSON.stringify(publicContent(content), null, 2) });
         this.emitFile({ type: "asset", fileName: ".nojekyll", source: "" });
       },
     },

@@ -1,3 +1,4 @@
+import type { TrainerContent } from "../app/types";
 import { contentSchema, publicationIssues, publishedContent } from "../app/content-validation";
 
 export interface Env {
@@ -91,8 +92,39 @@ async function credentials(request: Request, env: Env, register: boolean) {
 export async function handleApi(request: Request, env: Env): Promise<Response> {
   const path = new URL(request.url).pathname;
   if (request.method === "POST" && (path === "/api/auth/login" || path === "/api/auth/register")) return credentials(request, env, path.endsWith("register"));
-  if (path === "/api/content" && request.method === "GET") return json(JSON.parse((await latest(env)).published_json));
   const user = await session(request, env);
+  if ((path === "/api/content" || path === "/content/trainer.json") && request.method === "GET") {
+    const content: TrainerContent = JSON.parse((await latest(env)).published_json);
+    if (user && user.role !== "student") return json(content);
+    const overrides = user ? (await env.DB.prepare("SELECT system_id,allowed FROM system_access WHERE user_id=?").bind(user.id).all<{ system_id: string; allowed: number }>()).results : [];
+    const allowed = new Map(overrides.map(item => [item.system_id, !!item.allowed]));
+    const accessible = (item: TrainerContent["systems"][number]) => allowed.get(item.id) ?? item.access !== "restricted";
+    const systems = content.systems.filter(accessible);
+    const lockedSystems = content.systems.filter(item => !accessible(item)).map(({ id, name }) => ({ id, name }));
+    return json({ ...content, systems, ...(lockedSystems.length ? { lockedSystems } : {}) });
+  }
+  if (path === "/api/admin/system-access" && request.method === "GET") {
+    authorize(request, env, user, ["admin"]);
+    const userId = new URL(request.url).searchParams.get("userId");
+    if (!userId || !(await env.DB.prepare("SELECT id FROM users WHERE id=?").bind(userId).first())) throw new HttpError(404, "Uživatel neexistuje.");
+    const content: TrainerContent = JSON.parse((await latest(env)).draft_json);
+    const rows = (await env.DB.prepare("SELECT system_id,allowed FROM system_access WHERE user_id=?").bind(userId).all<{ system_id: string; allowed: number }>()).results;
+    return json(content.systems.map(item => ({ id: item.id, name: item.name, access: item.access || "public", override: rows.find(row => row.system_id === item.id)?.allowed ?? null })));
+  }
+  if (path === "/api/admin/system-access" && request.method === "POST") {
+    const current = authorize(request, env, user, ["admin"]); const input = await body(request);
+    if (typeof input.userId !== "string" || typeof input.systemId !== "string" || ![true, false, null].includes(input.allowed as boolean | null)) throw new HttpError(400, "Neplatné nastavení přístupu.");
+    const target = await env.DB.prepare("SELECT role FROM users WHERE id=?").bind(input.userId).first<{ role: Role }>();
+    if (!target) throw new HttpError(404, "Uživatel neexistuje.");
+    if (target.role !== "student") throw new HttpError(400, "Editoři a správci mají přístup ke všem systémům.");
+    const content: TrainerContent = JSON.parse((await latest(env)).draft_json);
+    if (!content.systems.some(item => item.id === input.systemId)) throw new HttpError(404, "Systém neexistuje.");
+    await env.DB.batch([
+      input.allowed === null ? env.DB.prepare("DELETE FROM system_access WHERE user_id=? AND system_id=?").bind(input.userId, input.systemId) : env.DB.prepare("INSERT INTO system_access(user_id,system_id,allowed,updated_by,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(user_id,system_id) DO UPDATE SET allowed=excluded.allowed,updated_by=excluded.updated_by,updated_at=excluded.updated_at").bind(input.userId, input.systemId, Number(input.allowed), current.id, now()),
+      env.DB.prepare("INSERT INTO system_access_changes(actor_id,user_id,system_id,allowed,created_at) VALUES(?,?,?,?,?)").bind(current.id, input.userId, input.systemId, input.allowed === null ? null : Number(input.allowed), now())
+    ]);
+    return json({ ok: true });
+  }
   if (path === "/api/me" && request.method === "GET") return json({ user: user ? { id: user.id, username: user.username, name: user.name, role: user.role } : null, csrfToken: user?.csrf_token || null, loginAvailable: !!env.PASSWORD_PEPPER && env.PASSWORD_PEPPER.length >= 32 });
   if (path === "/api/auth/logout" && request.method === "POST") {
     const current = authorize(request, env, user, roles); await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(current.token_hash).run();
@@ -151,7 +183,10 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
 }
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    if (!new URL(request.url).pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
+    let path: string;
+    try { path = decodeURIComponent(new URL(request.url).pathname); } catch { return json({ error: "Neplatná cesta." }, 400); }
+    if (path.startsWith("/content/")) request = new Request(new URL("/api/content", request.url), request);
+    else if (!path.startsWith("/api/")) return env.ASSETS.fetch(request);
     try { return await handleApi(request, env); }
     catch (error) { if (error instanceof HttpError) return json({ error: error.message }, error.status); console.error("HABRA API request failed", error instanceof Error ? error.name : "UnknownError"); return json({ error: "Server nemohl požadavek dokončit. Zkus to později." }, 500); }
   }

@@ -9,6 +9,9 @@ systémových karet. Přehled podkladů a rozsahu lekcí je v [SOURCES.md](SOURC
 
 Volitelný Cloudflare Worker a D1 přidávají přihlášení jménem a heslem, role
 student/editor/správce a společný editor s přímým zveřejněním otázek pro všechny.
+Editor podporuje nové systémy, úpravu pravidel a vlastní testové sady s počtem
+otázek, náhodným výběrem a podmínkou dokončeného tréninku. Správce může řídit
+přístup studentů k jednotlivým systémům.
 Nastavení, testy a nasazení popisuje [CLOUDFLARE.md](CLOUDFLARE.md).
 
 Potřebujete Node.js alespoň 22.13 a pnpm 11.19.0 (viz `packageManager`).

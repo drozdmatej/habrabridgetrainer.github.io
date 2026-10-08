@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { TrainerContent, TrainerQuestion } from "./types";
+import type { TrainerContent, TrainerLevel, TrainerQuestion } from "./types";
 
 // English S always means spades. Czech hearts must be H or ♥ (not ambiguous S).
 export function normalizeBid(input: string): string {
@@ -14,6 +14,13 @@ export function normalizeBid(input: string): string {
 
 const id = z.string().trim().min(1).max(200).refine(value => !Object.hasOwn(Object.prototype, value) && value !== "prototype", "Toto ID je vyhrazené; zvol jiné.");
 const text = z.string().max(10000);
+const questionArray = z.array(z.object({
+        id, type: z.enum(["bid_box", "choice"]), sequence: z.array(text).max(200),
+        hand: z.object({ s: text, h: text, d: text, c: text }).optional(),
+        prompt: text, correctBid: text.optional(), rationale: text,
+        options: z.array(z.object({ id, text, correct: z.boolean() })).max(20).optional(),
+      })).max(2000);
+
 // Drafts may be incomplete, but must always be safe to load into the editor.
 export const contentSchema = z.object({
   title: text, academyName: text,
@@ -21,16 +28,12 @@ export const contentSchema = z.object({
     id, name: text, status: z.enum(["active", "draft"]),
     description: text.optional(), rules: z.array(text).max(50).optional(),
     difficulty: z.enum(["beginner", "intermediate", "advanced", "expert"]).optional(),
-    sources: z.array(text).max(20).optional(),
+    sources: z.array(text).max(20).optional(), access: z.enum(["public", "restricted"]).optional(),
     levels: z.array(z.object({
       id, title: text, description: text, status: z.enum(["active", "draft"]).optional(),
       passingPercent: z.number().int().min(0).max(100),
-      questions: z.array(z.object({
-        id, type: z.enum(["bid_box", "choice"]), sequence: z.array(text).max(200),
-        hand: z.object({ s: text, h: text, d: text, c: text }).optional(),
-        prompt: text, correctBid: text.optional(), rationale: text,
-        options: z.array(z.object({ id, text, correct: z.boolean() })).max(20).optional(),
-      })).max(2000),
+      questions: questionArray,
+      test: z.object({ source: z.enum(["lesson", "separate"]), questions: questionArray.optional(), questionCount: z.number().int().min(1).max(2000).optional(), shuffle: z.boolean().optional(), requireLesson: z.boolean().optional() }).optional(),
     })).max(200),
   })).min(1).max(20),
 }).superRefine((content, context) => {
@@ -45,8 +48,8 @@ export const contentSchema = z.object({
   content.systems.forEach((system, s) => {
     unique(system.levels, ["systems", s, "levels"]);
     system.levels.forEach((level, l) => {
-      unique(level.questions, ["systems", s, "levels", l, "questions"]);
-      level.questions.forEach((q, i) => unique(q.options || [], ["systems", s, "levels", l, "questions", i, "options"]));
+      unique(allLevelQuestions(level), ["systems", s, "levels", l, "questions"]);
+      allLevelQuestions(level).forEach((q, i) => unique(q.options || [], ["systems", s, "levels", l, "questions", i, "options"]));
     });
   });
 });
@@ -98,7 +101,10 @@ export function isHigherBid(value: string, sequence: string[]): boolean {
   return rank === null || sequence.every(bid => { const previous = bidRank(bid); return previous === null || rank > previous; });
 }
 
-export type ContentIssue = { systemId?: string; levelId?: string; questionId?: string; message: string };
+export function testPool(level: TrainerLevel): TrainerQuestion[] { return level.test?.source === "separate" ? level.test.questions || [] : level.questions; }
+export function allLevelQuestions(level: TrainerLevel): TrainerQuestion[] { return [...level.questions, ...(level.test?.source === "separate" ? level.test.questions || [] : [])]; }
+
+export type ContentIssue = { systemId?: string; levelId?: string; questionId?: string; bank?: "lesson" | "test"; message: string };
 export function publicationIssues(content: TrainerContent): ContentIssue[] {
   const issues: ContentIssue[] = [];
   if (!content.title.trim() || !content.academyName.trim()) issues.push({ message: "Doplň název aplikace a akademie." });
@@ -112,20 +118,34 @@ export function publicationIssues(content: TrainerContent): ContentIssue[] {
       const at = { systemId: system.id, levelId: level.id };
       if (!level.title.trim()) issues.push({ ...at, message: "Doplň název kapitoly." });
       if (!level.questions.length) issues.push({ ...at, message: "Kapitola nemá žádné úlohy." });
-      for (const question of level.questions) for (const message of validateQuestion(question)) issues.push({ ...at, questionId: question.id, message });
+      for (const question of level.questions) for (const message of validateQuestion(question)) issues.push({ ...at, questionId: question.id, bank: "lesson", message });
+      const pool = testPool(level);
+      if (!pool.length) issues.push({ ...at, message: "Test nemá žádné úlohy." });
+      if (level.test?.questionCount && level.test.questionCount > pool.length) issues.push({ ...at, message: "Počet úloh v testu je vyšší než počet dostupných otázek." });
+      if (level.test?.source === "separate") for (const question of pool) for (const message of validateQuestion(question)) issues.push({ ...at, questionId: question.id, bank: "test", message });
     }
   }
   return issues;
 }
 
 export function publishedContent(content: TrainerContent): TrainerContent {
-  return { ...content, systems: content.systems.filter((s) => s.status === "active").map((s) => ({ ...s, levels: s.levels.filter((l) => l.status !== "draft") })) };
+  return { ...content, systems: content.systems.filter((s) => s.status === "active").map((s) => ({ ...s, ...(s.rules ? { rules: s.rules.filter(rule => rule.trim()) } : {}), ...(s.sources ? { sources: s.sources.filter(source => source.trim()) } : {}), levels: s.levels.filter((l) => l.status !== "draft") })) };
 }
 
-export function loadPublishedContent(raw: unknown): TrainerContent {
+export function publicContent(content: TrainerContent): TrainerContent {
+  const published = publishedContent(content);
+  const lockedSystems = published.systems.filter(s => s.access === "restricted").map(({ id, name }) => ({ id, name }));
+  return { ...published, systems: published.systems.filter(s => s.access !== "restricted"), ...(lockedSystems.length ? { lockedSystems } : {}) };
+}
+
+export function loadPublishedContent(raw: unknown, allowLockedEmpty = false): TrainerContent {
+  const locked = z.object({ lockedSystems: z.array(z.object({ id, name: text })).max(20).optional() }).parse(raw).lockedSystems;
+  if (allowLockedEmpty && z.object({ systems: z.array(z.never()).length(0) }).safeParse(raw).success) {
+    return z.object({ title: text, academyName: text, systems: z.array(z.never()).length(0), lockedSystems: z.array(z.object({ id, name: text })).max(20) }).parse(raw);
+  }
   const parsed = contentSchema.safeParse(raw);
   if (!parsed.success) throw new Error("Obsah má neplatnou strukturu. Kontaktuj správce aplikace.");
   const published = publishedContent(parsed.data);
   if (publicationIssues(published).length) throw new Error("Výukový obsah obsahuje neplatné nebo neúplné úlohy. Kontaktuj správce aplikace.");
-  return published;
+  return { ...published, ...(locked?.length ? { lockedSystems: locked } : {}) };
 }

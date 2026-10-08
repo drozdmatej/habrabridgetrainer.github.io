@@ -149,6 +149,54 @@ try {
   assert.equal(await promptField.evaluate(node => node === document.activeElement), true);
   console.log('PASS editor recovery, cancellation, preserved draft, and typing focus');
 
+  const creation = await browser.newPage();
+  await creation.goto(base);
+  await creation.getByRole('button', { name: 'Správa obsahu', exact: true }).click();
+  await creation.getByRole('button', { name: 'Načíst koncept', exact: true }).click();
+  await creation.getByRole('button', { name: 'Nový systém', exact: true }).click();
+  await creation.getByLabel('Název systému', { exact: true }).fill('Nový výukový systém');
+  await creation.getByLabel('Pravidla systému', { exact: false }).fill('1♣ = 16+ FB\nNová barva = F');
+  await creation.getByRole('button', { name: 'Přidat kapitolu', exact: true }).click();
+  await creation.getByLabel('Název', { exact: true }).fill('První kapitola');
+  await creation.locator('.admin-editor .chapter-status [role="checkbox"]').first().click();
+  await creation.getByRole('button', { name: 'Přidat úlohu', exact: true }).click();
+  await creation.locator('.question-editor [role="checkbox"]').click();
+  await creation.getByLabel('Otázka', { exact: true }).fill('Tréninková otázka');
+  await creation.getByLabel('Vysvětlení', { exact: true }).fill('Vysvětlení tréninku.');
+  await creation.getByLabel('Otázky pro test', { exact: true }).selectOption('separate');
+  await creation.getByRole('button', { name: 'Testové otázky', exact: true }).click();
+  await creation.getByRole('button', { name: 'Přidat úlohu', exact: true }).click();
+  await creation.locator('.question-editor [role="checkbox"]').click();
+  await creation.getByLabel('Otázka', { exact: true }).fill('Samostatná testová otázka');
+  await creation.getByLabel('Vysvětlení', { exact: true }).fill('Vysvětlení testu.');
+  await creation.getByLabel('Počet otázek v testu', { exact: false }).fill('1');
+  await creation.getByLabel('Stav systému', { exact: true }).selectOption('active');
+  await creation.getByRole('button', { name: 'Uložit v prohlížeči', exact: true }).click();
+  const createdStore = await creation.evaluate(key => JSON.parse(localStorage.getItem(key)), editorKey);
+  const createdSystem = createdStore.systems.at(-1);
+  assert.equal(createdSystem.name, 'Nový výukový systém');
+  assert.deepEqual(createdSystem.rules, ['1♣ = 16+ FB', 'Nová barva = F']);
+  assert.equal(createdSystem.levels[0].questions[0].prompt, 'Tréninková otázka');
+  assert.equal(createdSystem.levels[0].test.questions[0].prompt, 'Samostatná testová otázka');
+  assert.equal(await creation.getByRole('button', { name: 'Exportovat pro web', exact: true }).isEnabled(), true);
+  await creation.close();
+  console.log('PASS creating a system from scratch, editing rules and independent test questions through the editor');
+
+  const configured = structuredClone(content);
+  const configuredLevel = configured.systems[0].levels[0];
+  configuredLevel.test = { source: 'separate', questionCount: 2, shuffle: false, requireLesson: false, questions: configuredLevel.questions.slice(0, 3).map((question, i) => ({ ...question, id: 'separate-' + question.id, prompt: 'Testová otázka ' + (i + 1) })) };
+  const custom = await browser.newPage();
+  await custom.route('**/content/trainer.json', route => route.fulfill({ json: configured }));
+  await custom.goto(base);
+  await custom.locator('.level-card').first().getByRole('button', { name: 'Test', exact: true }).click();
+  assert.equal(await custom.getByRole('progressbar', { name: 'Vyřešené úlohy v pokusu' }).getAttribute('aria-valuemax'), '2');
+  await finish(custom, configuredLevel.test.questions.slice(0, 2), false);
+  // Successful standalone test unlocks the next chapter without marking the lesson complete.
+  const state = await custom.evaluate(({ key, id }) => JSON.parse(localStorage.getItem(key)).systems['lepsi-levna'].levels[id], { key: progressKey, id: configuredLevel.id });
+  assert.equal(state.testPassed, true); assert.equal(state.lessonCompleted, false);
+  await custom.close();
+  console.log('PASS separate test bank, configured question count/order and optional lesson prerequisite');
+
   const damagedContext = await browser.newContext();
   const damaged = await damagedContext.newPage();
   await damaged.addInitScript(key => localStorage.setItem(key, '{damaged'), progressKey);

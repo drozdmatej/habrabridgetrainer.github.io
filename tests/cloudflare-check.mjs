@@ -18,7 +18,7 @@ const content = JSON.parse(readFileSync('docs/content/trainer.json', 'utf8'));
 const password = 'Local-test-password-172!';
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 let server, browser, log = '';
-writeFileSync(config, JSON.stringify({ name: 'habra-test', main: resolve('worker/index.ts'), compatibility_date: '2026-10-06', assets: { directory: resolve('docs'), binding: 'ASSETS', run_worker_first: ['/api/*'] }, d1_databases: [{ binding: 'DB', database_name: 'habra-trainer', database_id: 'local-habra-test', migrations_dir: resolve('worker/migrations') }], vars: { APP_URL: base } }));
+writeFileSync(config, JSON.stringify({ name: 'habra-test', main: resolve('worker/index.ts'), compatibility_date: '2026-10-06', assets: { directory: resolve('docs'), binding: 'ASSETS', run_worker_first: true }, d1_databases: [{ binding: 'DB', database_name: 'habra-trainer', database_id: 'local-habra-test', migrations_dir: resolve('worker/migrations') }], vars: { APP_URL: base } }));
 writeFileSync(join(dir, '.dev.vars'), `PASSWORD_PEPPER=${randomBytes(32).toString('hex')}\n`, { mode: 0o600 });
 function client() {
   return { cookie: '', csrf: '', async request(path, input, expected = 200, headers = {}) {
@@ -57,6 +57,39 @@ try {
   assert.equal((await admin.request('/me')).user.role, 'admin');
   console.log('PASS registration, password verification, CSRF, server roles and last administrator protection');
 
+  const accessOriginal = await editor.request('/editor/draft');
+  const restricted = structuredClone(accessOriginal.content);
+  restricted.systems[0].access = 'restricted';
+  restricted.systems[0].rules.push('Nová ověřovací dohoda');
+  restricted.systems[0].levels[0].test = { source: 'separate', questionCount: 2, shuffle: false, requireLesson: false, questions: restricted.systems[0].levels[0].questions.slice(0, 3).map(q => ({ ...q, id: 'independent-' + q.id })) };
+  const restrictedPublished = await editor.request('/editor/publish', { version: accessOriginal.version, content: restricted });
+  assert.equal((await guest.request('/content')).systems.length, content.systems.length - 1);
+  assert.deepEqual((await guest.request('/content')).lockedSystems, [{ id: content.systems[0].id, name: content.systems[0].name }]);
+  for (const path of ['/content/trainer.json', '/content/%74rainer.json', '/%63ontent/trainer.json', '/content%2Ftrainer.json']) {
+    const response = await fetch(base + path);
+    assert.equal((await response.json()).systems.some(s => s.id === content.systems[0].id), false);
+  }
+  const direct = await fetch(base + '/content/trainer.json');
+  assert.equal((await direct.json()).systems.some(s => s.id === content.systems[0].id), false);
+  await student.request('/admin/system-access', { userId: studentUser.id, systemId: content.systems[0].id, allowed: true }, 403);
+  await admin.request('/admin/system-access', { userId: studentUser.id, systemId: content.systems[0].id, allowed: true }, 403, { 'X-CSRF-Token': '' });
+  await admin.request('/admin/system-access', { userId: studentUser.id, systemId: content.systems[0].id, allowed: 'true' }, 400);
+  await admin.request('/admin/system-access', { userId: studentUser.id, systemId: 'missing', allowed: true }, 404);
+  await admin.request('/admin/system-access', { userId: editorUser.id, systemId: content.systems[0].id, allowed: false }, 400);
+  await admin.request('/admin/system-access', { userId: studentUser.id, systemId: content.systems[0].id, allowed: true });
+  assert.equal((await student.request('/content')).systems.length, content.systems.length);
+  assert.deepEqual((await student.request('/content')).systems[0].levels[0].test, restricted.systems[0].levels[0].test);
+  await admin.request('/admin/system-access', { userId: studentUser.id, systemId: content.systems[0].id, allowed: null });
+  assert.equal((await student.request('/content')).systems.length, content.systems.length - 1);
+  for (const system of content.systems) await admin.request('/admin/system-access', { userId: studentUser.id, systemId: system.id, allowed: false });
+  assert.equal((await student.request('/content')).systems.length, 0);
+  const deniedDirect = await fetch(base + '/content/trainer.json', { headers: { Cookie: student.cookie } });
+  assert.equal((await deniedDirect.json()).systems.length, 0);
+  assert.equal((await editor.request('/content')).systems.length, content.systems.length);
+  for (const system of content.systems) await admin.request('/admin/system-access', { userId: studentUser.id, systemId: system.id, allowed: null });
+  await editor.request('/editor/publish', { version: restrictedPublished.version, content: accessOriginal.content });
+  console.log('PASS system access defaults, overrides, CSRF, staff permissions and direct JSON protection');
+
   const original = await editor.request('/editor/draft');
   const changed = structuredClone(original.content); changed.systems[0].levels[0].questions[0].prompt = 'Sdílená testovací otázka';
   const saved = await editor.request('/editor/draft', { version: original.version, content: changed });
@@ -75,7 +108,7 @@ try {
   }));
   assert.deepEqual(results.map(result => result.status).sort(), [200, 409]);
   assert.equal(results.find(result => result.status === 200).value.version, restored.version + 1);
-  assert.equal((await editor.request('/editor/history')).length, 5);
+  assert.equal((await editor.request('/editor/history')).length, 7);
   run(['--experimental-strip-types', 'scripts/seed-database.ts', '--local']);
   assert.equal((await editor.request('/editor/draft')).version, restored.version + 1);
   console.log('PASS shared drafts, concurrent write protection, validated publication, history, restore and repeatable seed');
@@ -109,6 +142,14 @@ try {
   await page.getByRole('button', { name: 'Správa obsahu', exact: true }).click();
   await page.getByRole('button', { name: 'Načíst koncept', exact: true }).click();
   await page.getByLabel('Otázka', { exact: true }).fill('Zveřejněná otázka z webového editoru');
+  const backgroundContent = structuredClone(await guest.request('/content'));
+  backgroundContent.title = 'Změna obsahu na pozadí';
+  await page.route('**/api/content', route => route.fulfill({ json: backgroundContent }));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await pause(500);
+  assert.equal(await page.getByLabel('Otázka', { exact: true }).inputValue(), 'Zveřejněná otázka z webového editoru');
+  await page.unroute('**/api/content');
+  console.log('PASS background refresh preserves the editor unsaved draft');
   await page.getByRole('button', { name: 'Uložit koncept na server', exact: true }).click();
   await page.getByText('Koncept uložen na serveru.', { exact: false }).waitFor();
   await page.getByRole('button', { name: 'Zveřejnit pro všechny', exact: true }).click();
@@ -136,6 +177,15 @@ try {
   await adminPage.getByLabel('Filtrovat podle role', { exact: true }).selectOption('editor');
   await adminPage.getByText('Žádný uživatel neodpovídá hledání.', { exact: true }).waitFor();
   await adminPage.getByLabel('Filtrovat podle role', { exact: true }).selectOption('all');
+  await adminPage.getByRole('button', { name: 'Systémy uživatele student-test', exact: true }).click();
+  const accessSelect = adminPage.getByLabel('Přístup k systému ' + content.systems[0].name, { exact: true });
+  await accessSelect.selectOption('deny');
+  await adminPage.getByRole('status').filter({ hasText: 'Přístup k systému byl uložen' }).waitFor();
+  assert.equal((await student.request('/content')).systems.some(system => system.id === content.systems[0].id), false);
+  await accessSelect.selectOption('default');
+  await adminPage.waitForFunction(() => document.querySelector('.system-access select')?.disabled === false);
+  assert.equal((await student.request('/content')).systems.length, content.systems.length);
+  console.log('PASS administrator changes individual system access through the web');
   await adminPage.getByLabel('Role uživatele student-test', { exact: true }).selectOption('editor');
   await adminPage.waitForFunction(() => document.querySelector('[aria-label="Role uživatele student-test"]')?.disabled === false);
   assert.equal((await student.request('/me')).user.role, 'editor');
@@ -175,6 +225,17 @@ try {
   await studentPage.getByRole('button', { name: 'Můj účet', exact: true }).waitFor();
   assert.equal(await studentPage.getByRole('button', { name: 'Správa obsahu', exact: true }).count(), 0);
   assert.deepEqual(errors, []); console.log('PASS browser registration keeps student permissions');
+  const webStudent = (await admin.request('/admin/users')).find(user => user.username === 'web-student');
+  for (const system of content.systems) await admin.request('/admin/system-access', { userId: webStudent.id, systemId: system.id, allowed: false });
+  await studentPage.reload();
+  await studentPage.getByRole('heading', { name: 'Žádný dostupný systém', exact: true }).waitFor();
+  assert.equal(await studentPage.locator('#training-system').count(), 0);
+  await studentPage.getByRole('button', { name: 'Můj účet', exact: true }).click();
+  await studentPage.getByRole('button', { name: 'Odhlásit se', exact: true }).click();
+  await studentPage.locator('#training-system').waitFor();
+  assert.equal(await studentPage.locator('#training-system option').count(), content.systems.length);
+  assert.deepEqual(errors, []);
+  console.log('PASS no accessible systems view and refreshed permissions after logout');
   for (let i = 0; i < 10; i++) await client().request('/auth/login', { username: 'unknown-user', password }, 401);
   await client().request('/auth/login', { username: 'unknown-user', password }, 429);
   await admin.request('/admin/role', { userId: editorUser.id, role: 'student' });

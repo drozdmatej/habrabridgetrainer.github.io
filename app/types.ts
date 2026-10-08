@@ -24,6 +24,8 @@ export type TrainerLevel = {
   description: string;
   passingPercent: number;
   questions: TrainerQuestion[];
+  test?: { source: "lesson" | "separate"; questions?: TrainerQuestion[]; questionCount?: number; shuffle?: boolean; requireLesson?: boolean };
+
 };
 
 export type TrainerSystem = {
@@ -34,6 +36,7 @@ export type TrainerSystem = {
   rules?: string[];
   difficulty?: "beginner" | "intermediate" | "advanced" | "expert";
   sources?: string[];
+  access?: "public" | "restricted";
   levels: TrainerLevel[];
 };
 
@@ -41,4 +44,5 @@ export type TrainerContent = {
   title: string;
   academyName: string;
   systems: TrainerSystem[];
+  lockedSystems?: { id: string; name: string }[];
 };

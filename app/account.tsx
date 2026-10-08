@@ -45,6 +45,8 @@ export function AccountPanel({ open, onOpenChange }: { open: boolean; onOpenChan
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [users, setUsers] = useState<AccountUser[] | null>(null);
+  const [accessUser, setAccessUser] = useState<AccountUser | null>(null);
+  const [systemAccess, setSystemAccess] = useState<{ id: string; name: string; access: "public" | "restricted"; override: number | null }[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<AccountUser["role"] | "all">("all");
   const visibleUsers = users?.filter(user => matchesSearch(`${user.name} ${user.username}`, userSearch) && (roleFilter === "all" || roleFilter === user.role)) || [];
@@ -88,11 +90,12 @@ export function AccountPanel({ open, onOpenChange }: { open: boolean; onOpenChan
           <ul className="account-users">{visibleUsers.map(user => <li key={user.id}><span>{user.name}<small>{user.username}</small></span><label>Role<select aria-label={`Role uživatele ${user.username}`} value={user.role} disabled={busy} onChange={event => {
             const role = event.target.value as AccountUser["role"];
             void perform(async () => {
-              await api("/admin/role", state.csrfToken, { userId: user.id, role }); setUsers(await api<AccountUser[]>("/admin/users"));
+              await api("/admin/role", state.csrfToken, { userId: user.id, role }); if (accessUser?.id === user.id) setAccessUser(null); setUsers(await api<AccountUser[]>("/admin/users"));
               if (user.id === state.user?.id) { setState(await api<AccountState>("/me")); setUsers(null); }
               else setNotice(`Role uživatele ${user.username} změněna na ${roleLabels[role]}.`);
             });
-          }}>{Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></li>)}</ul>
+          }}>{Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>{user.role === "student" && <button className="button button-secondary" disabled={busy} onClick={() => perform(async () => { const rows = await api<typeof systemAccess>(`/admin/system-access?userId=${encodeURIComponent(user.id)}`); setSystemAccess(rows); setAccessUser(user); })}>Systémy uživatele {user.username}</button>}</li>)}</ul>
+          {accessUser && <section className="system-access"><h3>Přístup uživatele {accessUser.username}</h3><p>Změny platí ihned pro nové načtení obsahu. Veřejné systémy jsou dostupné i hostům; pro přístup pouze vybraných uživatelů nastav systém na „Jen povolení uživatelé“.</p>{systemAccess.map(item => <label key={item.id}>{item.name}<select aria-label={`Přístup k systému ${item.name}`} value={item.override === null ? "default" : item.override ? "allow" : "deny"} disabled={busy} onChange={event => { const allowed = event.target.value === "default" ? null : event.target.value === "allow"; void perform(async () => { await api("/admin/system-access", state.csrfToken, { userId: accessUser.id, systemId: item.id, allowed }); setSystemAccess(await api(`/admin/system-access?userId=${encodeURIComponent(accessUser.id)}`)); setNotice("Přístup k systému byl uložen."); }); }}><option value="default">Podle systému ({item.access === "restricted" ? "zamčeno" : "povoleno"})</option><option value="allow">Povolit</option><option value="deny">Zakázat</option></select></label>)}</section>}
         </>}
       </section>}
     </> : <form className="account-form" onSubmit={event => {

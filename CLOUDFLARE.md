@@ -13,7 +13,7 @@ GitHub Pages neumějí provozovat přihlášení ani společné ukládání.
 | --- | --- |
 | Student | Trénink, vlastní účet, změna hesla |
 | Editor | Navíc společný koncept, historie, obnova konceptu a zveřejňování otázek |
-| Správce | Navíc přidělování rolí registrovaným uživatelům |
+| Správce | Navíc přidělování rolí a přístupů k systémům |
 
 Nová registrace má vždy roli studenta. API čte aktuální roli z databáze při každém
 požadavku. Posledního správce nelze přes správu rolí degradovat.
@@ -142,3 +142,39 @@ Automatická obnova zapomenutého hesla bez přihlášení zatím není součás
 verze. Pro veřejné větší nasazení má smysl doplnit ověřený kontakt a recovery
 tok; vyšší provoz může vyžadovat Turnstile a samostatné rate limiting pravidlo.
 Zálohy D1 a přístup k tokenu/pepperu spravuje vlastník Cloudflare účtu.
+
+
+## Systémy, pravidla a testy
+
+Ve **Správě obsahu** načti koncept a použij **Nový systém**. Nový systém i
+kapitoly začínají jako rozpracované; hráči je neuvidí, dokud je nepřepneš do
+stavu ke zveřejnění a nezveřejníš koncept. Pravidla a podklady zadávej po řádcích.
+Smazání systému či kapitoly vyžaduje potvrzení a projeví se až zveřejněním.
+
+Každá kapitola může pro test použít tréninkové otázky nebo **samostatnou sadu**.
+U samostatné sady přepínej mezi tréninkovými a testovými otázkami. Prázdný počet
+znamená všechny otázky; s náhodným pořadím se vybere náhodný podvýběr z celé sady,
+bez něj prvních N otázek v pořadí editoru. Nastavit lze i požadavek na dokončený
+trénink a hranici úspěchu. Zveřejnění odmítne prázdnou sadu, neplatné otázky nebo
+počet vyšší než velikost sady. Starší obsah používá původní nastavení automaticky.
+
+## Přístup k systémům
+
+Výchozí přístup systému je **Veřejný** nebo **Jen povolení uživatelé**.
+Ve **Můj účet → Oprávnění uživatelů → Systémy uživatele** může správce studentovi
+nastavit Povolit, Zakázat nebo Podle systému. Povolení překoná výchozí zamčení,
+zákaz výchozí povolení. Editoři a správci mají přístup ke všem systémům kvůli správě.
+Změny individuálních oprávnění platí na serveru hned, změna výchozího přístupu
+systému po zveřejnění konceptu. Studentská stránka aktualizuje obsah při návratu do
+okna, změně přihlášení a každých 30 sekund; již stažený obsah nelze vzít zpět.
+
+Veřejný systém zůstává dostupný hostům. Chceš-li ho zpřístupnit jen některým
+studentům, nastav **Jen povolení uživatelé** a uděl konkrétní povolení.
+Server vrací zamčeným uživatelům pouze ID a název systému, včetně přímých odkazů
+na JSON. Statický výstup vynechává otázky omezených systémů; uživatelská oprávnění
+fungují na Cloudflare, nikoli na GitHub Pages. Nevkládej neveřejný obsah do
+veřejného zdrojového repozitáře, upravuj jej ve sdíleném editoru Cloudflare.
+
+Migrace `0002_system_access.sql` přidává přístupy a jejich audit bez změny
+existujících účtů a obsahu. Nasazovací skript aplikuje chybějící migrace před
+nasazením Workeru; před aktualizací uchovej zálohu D1.

@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { contentSchema, publicationIssues, publishedContent, validateQuestion } from "./content-validation";
 import { QuestionPreview } from "./question-card";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { ChoiceOption, TrainerContent, TrainerLevel, TrainerQuestion } from "./types";
+import type { ChoiceOption, TrainerContent, TrainerLevel, TrainerQuestion, TrainerSystem } from "./types";
 import { api, useAccount } from "./account";
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void; content: TrainerContent };
@@ -21,6 +21,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
   const [history, setHistory] = useState<{ version: number; action: string; author: string | null; created_at: number }[] | null>(null);
   const publishedOnServer = useRef(false);
   const [draft, setDraft] = useState<TrainerContent>(content);
+  const [questionBank, setQuestionBank] = useState<"lesson" | "test">("lesson");
   const [levelId, setLevelId] = useState(content.systems[0]?.levels[0]?.id || "");
   const [questionId, setQuestionId] = useState(content.systems[0]?.levels[0]?.questions[0]?.id || "");
   const storedSnapshot = useRef<string | null>(null);
@@ -43,22 +44,34 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
   }, [dirty]);
   const system = draft.systems.find((item) => item.id === systemId) || draft.systems[0];
   const level = system?.levels.find((item) => item.id === levelId);
-  const question = level?.questions.find((item) => item.id === questionId);
+  const editingQuestions = (questionBank === "test" ? level?.test?.questions : level?.questions) || [];
+  const question = editingQuestions.find((item) => item.id === questionId);
   const levelIndex = system?.levels.findIndex((item) => item.id === levelId) ?? -1;
-  const questionIndex = level?.questions.findIndex((item) => item.id === questionId) ?? -1;
+  const questionIndex = editingQuestions.findIndex((item) => item.id === questionId);
   const totalQuestions = useMemo(() => system?.levels.reduce((sum, item) => sum + item.questions.length, 0) || 0, [system]);
 
   function mutateSystem(callback: (levels: TrainerLevel[]) => TrainerLevel[]) {
     setDraft((current) => ({ ...current, systems: current.systems.map((item) => item.id === system.id ? { ...item, levels: callback(item.levels) } : item) }));
   }
   function patchLevel(patch: Partial<TrainerLevel>) { mutateSystem((levels) => levels.map((item) => item.id === levelId ? { ...item, ...patch } : item)); }
-  function patchQuestion(patch: Partial<TrainerQuestion>) { if (!level) return; patchLevel({ questions: level.questions.map((item) => item.id === questionId ? { ...item, ...patch } : item) }); }
-  function addLevel() { const created = newLevel(); mutateSystem((levels) => [...levels, created]); setLevelId(created.id); setQuestionId(""); }
-  function deleteLevel() { if (!level || !confirm(`Smazat kapitolu „${level.title}“ včetně všech úloh?`)) return; const next = system.levels.filter((item) => item.id !== level.id); mutateSystem(() => next); setLevelId(next[0]?.id || ""); setQuestionId(next[0]?.questions[0]?.id || ""); }
+  function patchSystem(patch: Partial<TrainerSystem>) { setDraft(current => ({ ...current, systems: current.systems.map(item => item.id === system.id ? { ...item, ...patch } : item) })); }
+  function addSystem() {
+    const created: TrainerSystem = { id: makeId("system"), name: "Nový systém", status: "draft", description: "", rules: [], access: "public", levels: [] };
+    setDraft(current => ({ ...current, systems: [...current.systems, created] })); setSystemId(created.id); setLevelId(""); setQuestionId(""); setQuestionBank("lesson");
+  }
+  function deleteSystem() {
+    if (draft.systems.length <= 1 || !confirm(`Smazat systém „${system.name}“ včetně všech kapitol?`)) return;
+    const next = draft.systems.filter(item => item.id !== system.id); setDraft(current => ({ ...current, systems: next })); setSystemId(next[0].id); setLevelId(next[0].levels[0]?.id || ""); setQuestionId(next[0].levels[0]?.questions[0]?.id || ""); setQuestionBank("lesson");
+  }
+  function patchTest(patch: Partial<NonNullable<TrainerLevel["test"]>>) { if (level) patchLevel({ test: { source: "lesson", ...level.test, ...patch } }); }
+  function patchQuestions(questions: TrainerQuestion[]) { if (questionBank === "test") patchTest({ questions }); else patchLevel({ questions }); }
+  function patchQuestion(patch: Partial<TrainerQuestion>) { if (!level) return; patchQuestions(editingQuestions.map((item) => item.id === questionId ? { ...item, ...patch } : item)); }
+  function addLevel() { const created = newLevel(); mutateSystem((levels) => [...levels, created]); setLevelId(created.id); setQuestionId(""); setQuestionBank("lesson"); }
+  function deleteLevel() { if (!level || !confirm(`Smazat kapitolu „${level.title}“ včetně všech úloh?`)) return; const next = system.levels.filter((item) => item.id !== level.id); mutateSystem(() => next); setQuestionBank("lesson"); setLevelId(next[0]?.id || ""); setQuestionId(next[0]?.questions[0]?.id || ""); }
   function moveLevel(direction: -1 | 1) { if (!level || levelIndex < 0) return; const target = levelIndex + direction; if (target < 0 || target >= system.levels.length) return; mutateSystem((levels) => { const next = [...levels]; [next[levelIndex], next[target]] = [next[target], next[levelIndex]]; return next; }); }
-  function addQuestion() { if (!level) return; const created = newQuestion(); patchLevel({ questions: [...level.questions, created] }); setQuestionId(created.id); }
-  function deleteQuestion() { if (!level || !question || !confirm("Smazat tuto úlohu?")) return; const next = level.questions.filter((item) => item.id !== question.id); patchLevel({ questions: next }); setQuestionId(next[0]?.id || ""); }
-  function moveQuestion(direction: -1 | 1) { if (!level || questionIndex < 0) return; const target = questionIndex + direction; if (target < 0 || target >= level.questions.length) return; const next = [...level.questions]; [next[questionIndex], next[target]] = [next[target], next[questionIndex]]; patchLevel({ questions: next }); }
+  function addQuestion() { if (!level) return; const created = newQuestion(); patchQuestions([...editingQuestions, created]); setQuestionId(created.id); }
+  function deleteQuestion() { if (!level || !question || !confirm("Smazat tuto úlohu?")) return; const next = editingQuestions.filter((item) => item.id !== question.id); patchQuestions(next); setQuestionId(next[0]?.id || ""); }
+  function moveQuestion(direction: -1 | 1) { if (!level || questionIndex < 0) return; const target = questionIndex + direction; if (target < 0 || target >= editingQuestions.length) return; const next = [...editingQuestions]; [next[questionIndex], next[target]] = [next[target], next[questionIndex]]; patchQuestions(next); }
   function patchOption(optionId: string, patch: Partial<ChoiceOption>) { if (!question) return; patchQuestion({ options: (question.options || []).map((item) => item.id === optionId ? { ...item, ...patch } : item) }); }
   function markCorrect(optionId: string) { if (!question) return; patchQuestion({ options: (question.options || []).map((item) => ({ ...item, correct: item.id === optionId })) }); }
   function addOption() { if (!question) return; patchQuestion({ options: [...(question.options || []), { id: makeId("option"), text: "Nová možnost", correct: !(question.options || []).some((item) => item.correct) }] }); }
@@ -74,7 +87,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
         if (backend) {
           const remote = await api<{ version: number; content: TrainerContent }>("/editor/draft");
           const parsed = contentSchema.parse(action === "web" ? await api<TrainerContent>("/content") : remote.content);
-          setVersion(remote.version); setDraft(parsed); setSavedSnapshot(JSON.stringify(parsed)); setLoaded(true); setHistory(null);
+          setVersion(remote.version); setQuestionBank("lesson"); setDraft(parsed); setSavedSnapshot(JSON.stringify(parsed)); setLoaded(true); setHistory(null);
           setSystemId(parsed.systems[0].id); setLevelId(parsed.systems[0].levels[0]?.id || ""); setQuestionId(parsed.systems[0].levels[0]?.questions[0]?.id || "");
           setSourceLabel(`${action === "web" ? "Zveřejněný obsah jako základ konceptu" : "Sdílený koncept"} · verze ${remote.version}`);
           setStatus({ tone: "success", text: "Obsah je připravený k úpravám. Zveřejnění změní otázky pro všechny." });
@@ -88,7 +101,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
         try { parsed = contentSchema.parse(action === "web" || !raw ? content : JSON.parse(raw)); }
         catch { throw new Error("Uložený koncept je poškozený. Použij Načíst obsah webu. Původní koncept tím nebude smazán."); }
         storedSnapshot.current = raw;
-        setDraft(parsed); setSavedSnapshot(JSON.stringify(parsed)); setLoaded(true);
+        setQuestionBank("lesson"); setDraft(parsed); setSavedSnapshot(JSON.stringify(parsed)); setLoaded(true);
         setSystemId(parsed.systems[0].id); setLevelId(parsed.systems[0].levels[0]?.id || "");
         setQuestionId(parsed.systems[0].levels[0]?.questions[0]?.id || "");
         setSourceLabel(action === "load" && raw ? "Koncept z tohoto prohlížeče" : "Aktuální obsah webu jako základ konceptu");
@@ -114,6 +127,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
           setVersion(remote.version); setDraft(remote.content); setSavedSnapshot(JSON.stringify(remote.content)); setHistory(null); publishedOnServer.current = true;
           setSourceLabel(`Sdílený koncept · verze ${remote.version}`); setStatus({ tone: "success", text: "Zveřejněno pro všechny. Po zavření editoru se načtou aktuální otázky." }); return;
         }
+        if (parsed.systems.some(item => item.status === "active" && item.access === "restricted")) throw new Error("Omezené systémy zveřejňuj přes Cloudflare. Statický web nemá přihlášení pro kontrolu přístupu.");
         downloadJson(publishedContent(parsed), "trainer.json");
         setStatus({ tone: "success", text: "Stažen trainer.json. Nahraď jím content/trainer.json na GitHubu (v hotovém webu docs/content/trainer.json). Web se tímto exportem ještě nezměnil." });
       }
@@ -136,7 +150,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
       const parsed = contentSchema.safeParse(JSON.parse(await file.text()));
       if (!parsed.success) throw new Error("Neplatná struktura JSON: " + parsed.error.issues.slice(0,3).map((i) => i.path.join(".") + ": " + i.message).join("; "));
       if (!confirm(backend ? "Nahradit obsah editoru tímto JSON? Otázky pro hráče se změní až zveřejněním." : "Nahradit obsah editoru tímto JSON? Otázky na webu se změní až nahráním nového JSON na GitHub.")) return;
-      setDraft(parsed.data); setSystemId(parsed.data.systems[0].id); setLevelId(parsed.data.systems[0].levels[0]?.id || ""); setQuestionId(parsed.data.systems[0].levels[0]?.questions[0]?.id || "");
+      setQuestionBank("lesson"); setDraft(parsed.data); setSystemId(parsed.data.systems[0].id); setLevelId(parsed.data.systems[0].levels[0]?.id || ""); setQuestionId(parsed.data.systems[0].levels[0]?.questions[0]?.id || "");
       setStatus({ tone: "idle", text: "JSON načten do editoru. Zkontroluj chyby a ulož koncept." });
     } catch (error) { setStatus({ tone: "error", text: error instanceof Error ? error.message : "Neplatný JSON." }); }
     finally { if (fileInput.current) fileInput.current.value = ""; }
@@ -153,7 +167,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
     try {
       const remote = await api<{ version: number; content: TrainerContent }>("/editor/restore", account.csrfToken, { version, restoreVersion: oldVersion });
       setVersion(remote.version); setDraft(remote.content); setSavedSnapshot(JSON.stringify(remote.content)); setHistory(null);
-      setSystemId(remote.content.systems[0].id); setLevelId(remote.content.systems[0].levels[0]?.id || ""); setQuestionId(remote.content.systems[0].levels[0]?.questions[0]?.id || "");
+      setQuestionBank("lesson"); setSystemId(remote.content.systems[0].id); setLevelId(remote.content.systems[0].levels[0]?.id || ""); setQuestionId(remote.content.systems[0].levels[0]?.questions[0]?.id || "");
       setSourceLabel(`Sdílený koncept · verze ${remote.version}`); setStatus({ tone: "success", text: "Starší verze obnovena jako koncept. Pro změnu otázek ji zkontroluj a zveřejni." });
     } catch (error) { setStatus({ tone: "error", text: error instanceof Error ? error.message : "Obnova selhala." }); }
     finally { busy.current = false; }
@@ -167,10 +181,20 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
 
       <aside className="admin-sidebar">
         <div className="admin-sidebar-head"><strong>Kapitoly</strong><button onClick={addLevel} aria-label="Přidat kapitolu"><Plus size={16}/></button></div>
-        {draft.systems.length > 1 && <label>Systém<select value={system.id} onChange={(event) => { const selected = draft.systems.find((x) => x.id === event.target.value)!; setSystemId(selected.id); setLevelId(selected.levels[0]?.id || ""); setQuestionId(selected.levels[0]?.questions[0]?.id || ""); }}>{draft.systems.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
-        <div className="admin-list">{system?.levels.map((item, index) => <button key={item.id} className={item.id === levelId ? "active" : ""} onClick={() => { setLevelId(item.id); setQuestionId(item.questions[0]?.id || ""); }}><span>{String(index + 1).padStart(2,"0")}</span><div><strong>{item.title}</strong><small>{item.questions.length} úloh · {item.status === "draft" ? "rozpracováno" : "ke zveřejnění"}</small></div></button>)}</div>
+        <button className="button button-secondary" disabled={draft.systems.length >= 20} onClick={addSystem}><Plus size={16}/>Nový systém</button>
+        <label>Systém<select value={system.id} onChange={(event) => { const selected = draft.systems.find((x) => x.id === event.target.value)!; setQuestionBank("lesson"); setSystemId(selected.id); setLevelId(selected.levels[0]?.id || ""); setQuestionId(selected.levels[0]?.questions[0]?.id || ""); }}>{draft.systems.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+        <div className="admin-list">{system?.levels.map((item, index) => <button key={item.id} className={item.id === levelId ? "active" : ""} onClick={() => { setQuestionBank("lesson"); setLevelId(item.id); setQuestionId(item.questions[0]?.id || ""); }}><span>{String(index + 1).padStart(2,"0")}</span><div><strong>{item.title}</strong><small>{item.questions.length} úloh · {item.status === "draft" ? "rozpracováno" : "ke zveřejnění"}</small></div></button>)}</div>
       </aside>
       <div className="admin-editor">
+        <section className="editor-section system-settings"><div className="editor-heading"><h3>Nastavení systému</h3><button className="danger" disabled={draft.systems.length <= 1} onClick={deleteSystem} aria-label="Smazat systém"><Trash2 size={16}/></button></div>
+          <label>Název systému<input value={system.name} onChange={event => patchSystem({ name: event.target.value })}/></label>
+          <label>Popis systému<textarea rows={2} value={system.description || ""} onChange={event => patchSystem({ description: event.target.value })}/></label>
+          <label>Stav systému<select aria-label="Stav systému" value={system.status} onChange={event => patchSystem({ status: event.target.value as TrainerSystem["status"] })}><option value="draft">Rozpracovaný — nezveřejňovat</option><option value="active">Připravený ke zveřejnění</option></select></label>
+          <label>Obtížnost systému<select aria-label="Obtížnost systému" value={system.difficulty || ""} onChange={event => patchSystem({ difficulty: event.target.value as TrainerSystem["difficulty"] || undefined })}><option value="">Neuvedeno</option><option value="beginner">Začátečník</option><option value="intermediate">Pokročilejší</option><option value="advanced">Pokročilý</option><option value="expert">Velmi pokročilý</option></select></label>
+          {backend && <label>Výchozí přístup<select aria-label="Výchozí přístup" value={system.access || "public"} onChange={event => patchSystem({ access: event.target.value as TrainerSystem["access"] })}><option value="public">Veřejný</option><option value="restricted">Jen povolení uživatelé</option></select><small>Individuální povolení a zákazy nastavuje správce v účtech. Editoři a správci mají vždy přístup.</small></label>}
+          <label>Pravidla systému<textarea rows={6} value={(system.rules || []).join("\n")} onChange={event => patchSystem({ rules: event.target.value.split("\n") })}/><small>Jedno pravidlo na řádek, nejvýše 50 pravidel.</small></label>
+          <label>Podklady systému<textarea rows={2} value={(system.sources || []).join("\n")} onChange={event => patchSystem({ sources: event.target.value.split("\n") })}/><small>Jeden podklad na řádek.</small></label>
+        </section>
         {level ? <>
           <section className="editor-section"><div className="editor-heading"><div><span>Kapitola {levelIndex + 1}</span><h3>Základní údaje</h3></div><div><button onClick={() => moveLevel(-1)} disabled={levelIndex === 0} aria-label="Posunout kapitolu nahoru"><ArrowUp size={16}/></button><button onClick={() => moveLevel(1)} disabled={levelIndex === system.levels.length - 1} aria-label="Posunout kapitolu dolů"><ArrowDown size={16}/></button><button className="danger" onClick={deleteLevel} aria-label="Smazat kapitolu"><Trash2 size={16}/></button></div></div>
             <label className="chapter-status"><Checkbox checked={level.status === "draft"} onCheckedChange={(checked) => patchLevel({ status: checked ? "draft" : "active" })}/> Rozpracovaná kapitola — nezveřejňovat</label>
@@ -178,10 +202,17 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
             <label>Stručný popis<textarea rows={2} value={level.description} onChange={(event) => patchLevel({ description: event.target.value })}/></label>
             <label>Hranice úspěchu v testu<input type="number" min="0" max="100" value={level.passingPercent} onChange={(event) => patchLevel({ passingPercent: Number(event.target.value) })}/></label>
           </section>
-          <section className="editor-section"><div className="editor-heading"><div><span>Úlohy</span><h3>Obsah kapitoly</h3></div><button className="add-button" onClick={addQuestion}><Plus size={16}/> Přidat úlohu</button></div>
-            <div className="question-tabs">{level.questions.map((item,index)=><button key={item.id} className={item.id===questionId ? "active":""} onClick={()=>setQuestionId(item.id)}>{index+1}</button>)}</div>
+          <section className="editor-section test-settings"><h3>Nastavení testu</h3>
+            <label>Otázky pro test<select aria-label="Otázky pro test" value={level.test?.source || "lesson"} onChange={event => { const source = event.target.value as "lesson" | "separate"; patchTest({ source }); setQuestionBank("lesson"); setQuestionId(level.questions[0]?.id || ""); }}><option value="lesson">Otázky z tréninku</option><option value="separate">Samostatná sada testových otázek</option></select></label>
+            <label>Počet otázek v testu<input type="number" min="1" max="2000" placeholder="Všechny otázky" value={level.test?.questionCount ?? ""} onChange={event => patchTest({ questionCount: event.target.value === "" ? undefined : Number(event.target.value) })}/><small>Prázdné pole = všechny otázky. Vyšší počet než velikost sady zablokuje zveřejnění.</small></label>
+            <label className="chapter-status"><Checkbox checked={level.test?.shuffle !== false} onCheckedChange={checked => patchTest({ shuffle: !!checked })}/> Náhodný výběr a pořadí otázek</label>
+            <label className="chapter-status"><Checkbox checked={level.test?.requireLesson !== false} onCheckedChange={checked => patchTest({ requireLesson: !!checked })}/> Před testem vyžadovat dokončený trénink</label>
+            {level.test?.source === "separate" && <div className="chapter-filters" role="group" aria-label="Sada otázek v editoru">{([ ["lesson", "Tréninkové otázky"], ["test", "Testové otázky"] ] as const).map(([bank, label]) => <button key={bank} aria-pressed={questionBank === bank} onClick={() => { setQuestionBank(bank); setQuestionId((bank === "test" ? level.test?.questions : level.questions)?.[0]?.id || ""); }}>{label}</button>)}</div>}
+          </section>
+          <section className="editor-section"><div className="editor-heading"><div><span>Úlohy</span><h3>{questionBank === "test" ? "Testové otázky" : "Obsah kapitoly"}</h3></div><button className="add-button" onClick={addQuestion}><Plus size={16}/> Přidat úlohu</button></div>
+            <div className="question-tabs">{editingQuestions.map((item,index)=><button key={item.id} className={item.id===questionId ? "active":""} onClick={()=>setQuestionId(item.id)}>{index+1}</button>)}</div>
             {question ? <div className="question-editor">
-              <div className="editor-heading compact"><strong>Úloha {questionIndex + 1}</strong><div><button onClick={()=>moveQuestion(-1)} disabled={questionIndex===0} aria-label="Posunout úlohu nahoru"><ArrowUp size={16}/></button><button onClick={()=>moveQuestion(1)} disabled={questionIndex===level.questions.length-1} aria-label="Posunout úlohu dolů"><ArrowDown size={16}/></button><button className="danger" onClick={deleteQuestion} aria-label="Smazat úlohu"><Trash2 size={16}/></button></div></div>
+              <div className="editor-heading compact"><strong>Úloha {questionIndex + 1}</strong><div><button onClick={()=>moveQuestion(-1)} disabled={questionIndex===0} aria-label="Posunout úlohu nahoru"><ArrowUp size={16}/></button><button onClick={()=>moveQuestion(1)} disabled={questionIndex===editingQuestions.length-1} aria-label="Posunout úlohu dolů"><ArrowDown size={16}/></button><button className="danger" onClick={deleteQuestion} aria-label="Smazat úlohu"><Trash2 size={16}/></button></div></div>
               <label>Typ úlohy<select value={question.type} onChange={(event)=>{ const type=event.target.value as TrainerQuestion["type"]; patchQuestion({ type, options:type==="choice" ? question.options || [{id:makeId("option"),text:"Správná možnost",correct:true},{id:makeId("option"),text:"Nesprávná možnost",correct:false}] : undefined, correctBid:type==="bid_box" ? question.correctBid || "PASS" : undefined }); }}><option value="bid_box">Dražební deska</option><option value="choice">Výběr z možností</option></select></label>
               <label>Otázka<textarea aria-label="Otázka" rows={2} value={question.prompt} onChange={(event)=>patchQuestion({prompt:event.target.value})}/></label>
               <label>Předchozí dražba <small>(odděluj čárkou)</small><input value={question.sequence.join(",")} onChange={(event)=>patchQuestion({sequence:event.target.value.trim() ? event.target.value.split(",") : []})}/></label>
@@ -202,7 +233,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
           {issues.length ? <ul>{issues.map((issue, index) => <li key={index}><button onClick={() => {
             if (issue.systemId) setSystemId(issue.systemId);
             if (issue.levelId) setLevelId(issue.levelId);
-            if (issue.questionId) setQuestionId(issue.questionId);
+            if (issue.questionId) { setQuestionBank(issue.bank || "lesson"); setQuestionId(issue.questionId); }
           }}>{issue.message}</button></li>)}</ul> : <p>Všechny připravené kapitoly prošly kontrolou.</p>}
         </div>
       </aside>
