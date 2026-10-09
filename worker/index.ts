@@ -154,10 +154,43 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
     const saved = await env.DB.prepare("SELECT password_hash,password_salt FROM users WHERE id=?").bind(current.id).first<{ password_hash: string; password_salt: string }>();
     if (!saved || !equalHash(await passwordHash(input.oldPassword, saved.password_salt, env.PASSWORD_PEPPER), saved.password_hash)) throw new HttpError(401, "Současné heslo není správné.");
     const salt = random(); const derived = await passwordHash(input.newPassword, salt, env.PASSWORD_PEPPER);
-    await env.DB.batch([
-      env.DB.prepare("UPDATE users SET password_hash=?,password_salt=? WHERE id=?").bind(derived, salt, current.id),
-      env.DB.prepare("DELETE FROM sessions WHERE user_id=? AND token_hash!=?").bind(current.id, current.token_hash)
+    const results = await env.DB.batch([
+      env.DB.prepare("UPDATE users SET password_hash=?,password_salt=? WHERE id=? AND password_hash=? AND EXISTS(SELECT 1 FROM sessions WHERE token_hash=? AND expires_at>?)").bind(derived, salt, current.id, saved.password_hash, current.token_hash, now()),
+      env.DB.prepare("DELETE FROM sessions WHERE user_id=? AND token_hash!=? AND EXISTS(SELECT 1 FROM users WHERE id=? AND password_hash=?)").bind(current.id, current.token_hash, current.id, derived),
+      env.DB.prepare("DELETE FROM password_resets WHERE user_id=? AND EXISTS(SELECT 1 FROM users WHERE id=? AND password_hash=?)").bind(current.id, current.id, derived)
     ]);
+    if (!results[0].meta.changes) throw new HttpError(409, "Heslo nebo přihlášení se mezitím změnilo. Přihlas se znovu.");
+    return json({ ok: true });
+  }
+  if (path === "/api/admin/password-reset" && request.method === "POST") {
+    const current = authorize(request, env, user, ["admin"]); const input = await body(request);
+    if (typeof input.userId !== "string") throw new HttpError(400, "Vyber uživatele.");
+    const target = await env.DB.prepare("SELECT id,username FROM users WHERE id=?").bind(input.userId).first<{ id: string; username: string }>();
+    if (!target) throw new HttpError(404, "Uživatel neexistuje.");
+    await rateLimit(env, "reset-create:" + current.id, 20);
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, "0")).join("");
+    const created = now(), expires = created + 3600;
+    await env.DB.prepare("INSERT INTO password_resets(user_id,token_hash,created_by,created_at,expires_at) VALUES(?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET token_hash=excluded.token_hash,created_by=excluded.created_by,created_at=excluded.created_at,expires_at=excluded.expires_at").bind(target.id, await hash(token), current.id, created, expires).run();
+    return json({ username: target.username, url: env.APP_URL + "/#reset=" + token, expiresAt: expires });
+  }
+  if (path === "/api/auth/reset-password" && request.method === "POST") {
+    sameOrigin(request, env); const input = await body(request);
+    if (typeof input.token !== "string" || !/^[a-f0-9]{64}$/.test(input.token) || typeof input.newPassword !== "string" || input.newPassword.length < 12 || input.newPassword.length > 128) throw new HttpError(400, "Neplatný odkaz nebo heslo. Heslo musí mít 12–128 znaků.");
+    if (!env.PASSWORD_PEPPER || env.PASSWORD_PEPPER.length < 32) throw new HttpError(503, "Obnova hesla není dostupná.");
+    const digest = await hash(input.token), timestamp = now();
+    const valid = await env.DB.prepare("SELECT user_id FROM password_resets WHERE token_hash=? AND expires_at>?").bind(digest, timestamp).first();
+    if (!valid) throw new HttpError(400, "Odkaz je neplatný, použitý nebo vypršel. Požádej správce o nový.");
+    await rateLimit(env, "reset-use:" + digest, 5);
+    const salt = random(), derived = await passwordHash(input.newPassword, salt, env.PASSWORD_PEPPER);
+    // Recheck validity inside the transaction. Only the first concurrent request
+    // can change the password; deleting the capability makes retries harmless.
+    const results = await env.DB.batch([
+      env.DB.prepare("UPDATE users SET password_hash=?,password_salt=? WHERE id=(SELECT user_id FROM password_resets WHERE token_hash=? AND expires_at>?)").bind(derived, salt, digest, timestamp),
+      env.DB.prepare("DELETE FROM sessions WHERE user_id IN (SELECT user_id FROM password_resets WHERE token_hash=? AND expires_at>?)").bind(digest, timestamp),
+      env.DB.prepare("DELETE FROM password_resets WHERE token_hash=?").bind(digest),
+      env.DB.prepare("DELETE FROM auth_limits WHERE key=?").bind("reset-use:" + digest)
+    ]);
+    if (!results[0].meta.changes) throw new HttpError(400, "Odkaz je neplatný, použitý nebo vypršel. Požádej správce o nový.");
     return json({ ok: true });
   }
   if (path === "/api/editor/draft" && request.method === "GET") {

@@ -30,7 +30,7 @@ export function AccountProvider({ initial, enabled, children }: { initial: Accou
   return <AccountContext.Provider value={{ enabled, state, setState: next => { setState(next); channel.current?.postMessage("refresh"); } }}>{children}</AccountContext.Provider>;
 }
 const roleLabels = { student: "Student", editor: "Editor", admin: "Správce" };
-function PasswordField({ label, name, autoComplete, minLength = 12 }: { label: string; name: string; autoComplete: string; minLength?: number }) {
+export function PasswordField({ label, name, autoComplete, minLength = 12 }: { label: string; name: string; autoComplete: string; minLength?: number }) {
   const id = useId();
   const [shown, setShown] = useState(false);
   return <label htmlFor={id}>{label}<div className="password-control">
@@ -45,6 +45,7 @@ export function AccountPanel({ open, onOpenChange }: { open: boolean; onOpenChan
   const busyRef = useRef(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [resetLink, setResetLink] = useState<{ username: string; url: string; expiresAt: number } | null>(null);
   const [users, setUsers] = useState<AccountUser[] | null>(null);
   const [accessUser, setAccessUser] = useState<AccountUser | null>(null);
   const [systemAccess, setSystemAccess] = useState<{ id: string; name: string; access: "public" | "restricted"; override: number | null }[]>([]);
@@ -58,7 +59,7 @@ export function AccountPanel({ open, onOpenChange }: { open: boolean; onOpenChan
     catch (err) { setError(err instanceof Error ? err.message : "Operace selhala."); }
     finally { busyRef.current = false; setBusy(false); }
   }
-  return <Dialog open={open} onOpenChange={next => { if (!busyRef.current) onOpenChange(next); }}><DialogContent className="account-dialog" aria-busy={busy}>
+  return <Dialog open={open} onOpenChange={next => { if (!busyRef.current) { if (!next) setResetLink(null); onOpenChange(next); } }}><DialogContent className="account-dialog" aria-busy={busy}>
     <DialogHeader><DialogTitle>{state.user ? "Můj účet" : register ? "Vytvořit účet" : "Přihlášení"}</DialogTitle><DialogDescription>{state.user ? `${state.user.username} · ${roleLabels[state.user.role]}` : "Trénovat můžeš i bez účtu. Úpravy společných otázek jsou dostupné editorům a správcům."}</DialogDescription></DialogHeader>
     {state.user ? <>
       <p>Přihlášený uživatel: <strong>{state.user.name}</strong></p>
@@ -95,7 +96,11 @@ export function AccountPanel({ open, onOpenChange }: { open: boolean; onOpenChan
               if (user.id === state.user?.id) { setState(await api<AccountState>("/me")); setUsers(null); }
               else setNotice(`Role uživatele ${user.username} změněna na ${roleLabels[role]}.`);
             });
-          }}>{Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>{user.role === "student" && <button className="button button-secondary" disabled={busy} onClick={() => perform(async () => { const rows = await api<typeof systemAccess>(`/admin/system-access?userId=${encodeURIComponent(user.id)}`); setSystemAccess(rows); setAccessUser(user); })}>Systémy uživatele {user.username}</button>}</li>)}</ul>
+          }}>{Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>{user.role === "student" && <button className="button button-secondary" disabled={busy} onClick={() => perform(async () => { const rows = await api<typeof systemAccess>(`/admin/system-access?userId=${encodeURIComponent(user.id)}`); setSystemAccess(rows); setAccessUser(user); })}>Systémy uživatele {user.username}</button>}<button className="button button-secondary" disabled={busy} onClick={() => {
+            if (!confirm(`Vytvořit jednorázový odkaz pro obnovu hesla uživatele ${user.username}? Předchozí odkaz přestane platit. Heslo se změní až po použití odkazu.`)) return;
+            void perform(async () => { setResetLink(null); setResetLink(await api("/admin/password-reset", state.csrfToken, { userId: user.id })); });
+          }}>Obnovit heslo uživatele {user.username}</button></li>)}</ul>
+          {resetLink && <section className="password-reset-link"><h3>Obnova hesla: {resetLink.username}</h3><p>Odkaz předej pouze tomuto uživateli. Lze jej použít jednou, do {new Date(resetLink.expiresAt * 1000).toLocaleString("cs-CZ")}. Po nastavení hesla se odhlásí jeho všechna zařízení.</p><label>Jednorázový odkaz<input readOnly value={resetLink.url} onFocus={event => event.currentTarget.select()}/></label><button className="button button-secondary" onClick={() => perform(async () => { await navigator.clipboard.writeText(resetLink.url); setNotice("Odkaz zkopírován."); })}>Kopírovat odkaz</button></section>}
           {accessUser && <section className="system-access"><h3>Přístup uživatele {accessUser.username}</h3><p>Změny platí ihned pro nové načtení obsahu. Veřejné systémy jsou dostupné i hostům; pro přístup pouze vybraných uživatelů nastav systém na „Jen povolení uživatelé“.</p>{systemAccess.map(item => <label key={item.id}>{item.name}<select aria-label={`Přístup k systému ${item.name}`} value={item.override === null ? "default" : item.override ? "allow" : "deny"} disabled={busy} onChange={event => { const allowed = event.target.value === "default" ? null : event.target.value === "allow"; void perform(async () => { await api("/admin/system-access", state.csrfToken, { userId: accessUser.id, systemId: item.id, allowed }); setSystemAccess(await api(`/admin/system-access?userId=${encodeURIComponent(accessUser.id)}`)); setNotice("Přístup k systému byl uložen."); }); }}><option value="default">Podle systému ({item.access === "restricted" ? "zamčeno" : "povoleno"})</option><option value="allow">Povolit</option><option value="deny">Zakázat</option></select></label>)}</section>}
         </>}
       </section>}
@@ -112,6 +117,7 @@ export function AccountPanel({ open, onOpenChange }: { open: boolean; onOpenChan
       <PasswordField label="Heslo" name="password" autoComplete={register ? "new-password" : "current-password"}/>
       {register && <PasswordField label="Zopakovat heslo" name="confirmPassword" autoComplete="new-password"/>}
       <p>Jméno má 3–32 znaků bez diakritiky. Heslo musí mít alespoň 12 znaků.</p>
+      {!register && <p>Zapomenuté heslo? Požádej správce o jednorázový odkaz pro obnovu.</p>}
       <button className="button button-primary" disabled={!state.loginAvailable}>{busy ? "Zpracovávám…" : register ? "Vytvořit účet" : "Přihlásit se"}</button>
       <button type="button" className="button button-secondary" onClick={() => { setRegister(!register); setError(""); setNotice(""); }}>{register ? "Už mám účet" : "Vytvořit nový účet"}</button>
       {!state.loginAvailable && <p>Přihlášení správce ještě nenastavil.</p>}

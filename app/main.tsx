@@ -1,5 +1,6 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { PasswordRecovery } from "./password-recovery";
 import TrainerApp from "./trainer-app";
 import { loadPublishedContent } from "./content-validation";
 import type { TrainerContent } from "./types";
@@ -61,4 +62,4 @@ function AccessibleTrainer({ initialContent, backend }: { initialContent: Traine
   if (snapshot.identity !== identity) return <main className="main"><p role="status">{error || "Načítám dostupné systémy…"}</p>{error && <button onClick={() => location.reload()}>Načíst znovu</button>}</main>;
   return <TrainerApp key={JSON.stringify(snapshot.content)} initialContent={snapshot.content}/>;
 }
-createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);
+createRoot(document.getElementById("root")!).render(<StrictMode><PasswordRecovery/><App /></StrictMode>);

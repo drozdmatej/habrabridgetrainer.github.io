@@ -209,3 +209,18 @@ odložené opakování, nové otázky a nedávno zvládnuté otázky. Správné 
 postupně nastavují intervaly 1, 3, 7, 14, 30 dní; chybná odpověď interval resetuje.
 Nedávno zvládnuté úlohy doplní sadu, pokud prioritních otázek není dostatek.
 Samostatné testové otázky zůstávají mimo směs a procvičování nemění odemčení kapitol.
+
+## Obnova zapomenutého hesla
+
+Správce v Můj účet → Načíst uživatele vybere „Obnovit heslo uživatele …“.
+Jednorázový odkaz předá pouze dotčenému uživateli. Platí jednu hodinu;
+vytvoření nového odkazu ruší předchozí. Heslo ani přihlášení se při vytvoření
+odkazu nemění. Uživatel si nové heslo nastaví po otevření odkazu bez znalosti
+starého hesla. Úspěšná obnova atomicky změní heslo, ukončí všechna přihlášení
+účtu a spotřebuje odkaz. Role, přístupy a postup se zachovají.
+
+D1 ukládá jen SHA-256 otisk 256bitového náhodného tokenu. Token je ve fragmentu
+URL (neodesílá se v adrese HTTP požadavku) a formulář jej po otevření odstraní
+z adresního řádku. Vytváření odkazu vyžaduje roli správce a CSRF; uplatnění
+vyžaduje stejný původ a platný token. Běžná změna hesla ruší i existující
+obnovovací odkaz. Konfigurace je v migraci `0004_password_recovery.sql`.
