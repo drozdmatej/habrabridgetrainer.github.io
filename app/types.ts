@@ -6,10 +6,21 @@ export type ChoiceOption = {
   correct: boolean;
 };
 
+export type Seat = "N" | "E" | "S" | "W";
+export type AuctionCall = { seat: Seat; bid: string };
+export type Auction = {
+  dealer: Seat;
+  player: Seat;
+  vulnerability: "none" | "NS" | "EW" | "both";
+  calls: AuctionCall[];
+};
+
 export type TrainerQuestion = {
   id: string;
   type: "bid_box" | "choice";
+  /** Legacy partnership sequence; empty when auction is present. */
   sequence: string[];
+  auction?: Auction;
   hand?: Record<Suit, string>;
   prompt: string;
   correctBid?: string;
