@@ -364,6 +364,53 @@ try {
   await lessons.getByRole('button', { name: 'Výsledky', exact: true }).click();
   assert.equal(await lessons.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 
+  // Competitive auction: render every seat, gate calls and persist full editor data.
+  const competitive = structuredClone(content);
+  const fullQuestion = { id: 'competitive-ui', type: 'bid_box', sequence: [],
+    auction: { dealer: 'W', player: 'N', vulnerability: 'NS', calls: [{ seat: 'W', bid: '1C' }] },
+    prompt: 'Soutěžní dražba', correctBid: 'X', rationale: 'Kontra na soupeřův závazek.' };
+  competitive.systems[0].levels[0].questions = [fullQuestion];
+  const auctionContext = await browser.newContext({ viewport: { width: 320, height: 740 } });
+  const auctionPage = await auctionContext.newPage();
+  auctionPage.on('pageerror', error => errors.push(error.message));
+  await auctionPage.route('**/content/trainer.json', route => route.fulfill({ json: competitive }));
+  await auctionPage.goto(base);
+  await auctionPage.locator('.level-card').first().getByRole('button', { name: 'Začít trénink', exact: true }).click();
+  assert.equal(await auctionPage.locator('.auction th').count(), 4);
+  assert.equal(await auctionPage.locator('.auction td[aria-current]').getAttribute('aria-label'), 'N: na řadě');
+  assert.equal(await auctionPage.locator('.auction td[aria-label="W: 1C"]').count(), 1);
+  assert.equal(await auctionPage.getByRole('button', { name: 'KONTRA', exact: true }).isEnabled(), true);
+  assert.equal(await auctionPage.getByRole('button', { name: 'REKONTRA', exact: true }).isDisabled(), true);
+  assert.equal(await auctionPage.getByRole('button', { name: '1♣', exact: true }).isDisabled(), true);
+  assert.equal(await auctionPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await auctionPage.getByRole('button', { name: 'KONTRA', exact: true }).click();
+  assert.match(await auctionPage.locator('.feedback').innerText(), /Správně/);
+  await auctionPage.getByRole('button', { name: 'Zobrazit výsledek', exact: true }).click();
+  await auctionPage.setViewportSize({ width: 1280, height: 900 });
+  await auctionPage.getByRole('button', { name: 'Správa obsahu', exact: true }).click();
+  await auctionPage.getByRole('button', { name: 'Načíst koncept', exact: true }).click();
+  await auctionPage.getByRole('button', { name: 'Přidat hlášku', exact: true }).click();
+  await auctionPage.getByRole('textbox', { name: 'Hláška 2 – N', exact: true }).fill('X');
+  await auctionPage.getByLabel('Odpovídající hráč', { exact: true }).selectOption('E');
+  await auctionPage.getByLabel('Správná hláška', { exact: true }).fill('XX');
+  assert.equal(await auctionPage.locator('.admin-preview').getByRole('button', { name: 'REKONTRA', exact: true }).isEnabled(), true);
+  assert.equal(await auctionPage.locator('.admin-preview').getByRole('button', { name: 'KONTRA', exact: true }).isDisabled(), true);
+  assert.equal(await auctionPage.getByRole('button', { name: 'Exportovat pro web', exact: true }).isEnabled(), true);
+  await auctionPage.getByRole('button', { name: 'Uložit v prohlížeči', exact: true }).click();
+  const savedAuction = await auctionPage.evaluate(key => JSON.parse(localStorage.getItem(key)).systems[0].levels[0].questions[0], editorKey);
+  assert.deepEqual(savedAuction.sequence, []);
+  assert.deepEqual(savedAuction.auction, { dealer: 'W', player: 'E', vulnerability: 'NS', calls: [{ seat: 'W', bid: '1C' }, { seat: 'N', bid: 'X' }] });
+  await auctionPage.getByLabel('Správná hláška', { exact: true }).fill('X');
+  assert.equal(await auctionPage.getByRole('button', { name: 'Exportovat pro web', exact: true }).isDisabled(), true);
+  await auctionPage.getByLabel('Správná hláška', { exact: true }).fill('PASS');
+  for (let i = 0; i < 3; i++) await auctionPage.getByRole('button', { name: 'Přidat hlášku', exact: true }).click();
+  assert.equal(await auctionPage.locator('.admin-preview .auction caption').innerText(), 'Dražba skončila');
+  assert.equal(await auctionPage.locator('.admin-preview .bidding-box button:enabled').count(), 0);
+  assert.equal(await auctionPage.getByRole('button', { name: 'Exportovat pro web', exact: true }).isDisabled(), true);
+  if (process.env.HABRA_SCREENSHOT_DIR) await auctionPage.screenshot({ path: process.env.HABRA_SCREENSHOT_DIR + '/auction-editor.png', fullPage: true });
+  await auctionContext.close();
+  console.log('PASS four-seat auction, mobile layout, legal X/XX controls, full editor persistence and invalid-answer publication gate');
+
   assert.deepEqual(errors, []);
   console.log('PASS mobile overview/statistics and no application exceptions');
 } finally {

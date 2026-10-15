@@ -73,3 +73,50 @@ chyba jej vrací na okamžité opakování. Když vybraná sada potřebuje více
 doplní se méně procvičené příklady. Ani chytré opakování neodemkne kapitoly.
 
 V horní liště lze zvolit světlý či tmavý vzhled, nebo automatický režim podle zařízení. Volba zůstává uložená v prohlížeči. Mobilní editor má oddělené části Kapitoly, Úpravy a Náhled; přepínání zachovává rozpracovaný koncept. Nastavení systému, kapitoly a testu lze sbalit.
+
+### Dražba čtyř hráčů
+
+Nové otázky používají `auction` s rozdávajícím (`dealer`), odpovídajícím hráčem
+(`player`), stavem her (`vulnerability`: `none`, `NS`, `EW`, `both`) a všemi
+hláškami v pořadí (`calls`: `{ seat: "N" | "E" | "S" | "W", bid: string }`).
+Partnerství jsou pevná N–S a E–W; draží se N → E → S → W → N. Příklad
+s kontra soupeře, po kterém je na řadě partner zahajitele:
+
+```json
+{
+  "sequence": [],
+  "auction": {
+    "dealer": "N",
+    "player": "S",
+    "vulnerability": "NS",
+    "calls": [{ "seat": "N", "bid": "1H" }, { "seat": "E", "bid": "X" }]
+  }
+}
+```
+
+V této situaci může S pasovat, dát rekontra nebo vyšší závazek. Kontra není
+legální. Pasy právo na kontra/rekontra neruší; nový závazek ruší předchozí
+kontra/rekontra. Čtyři úvodní pasy nebo tři pasy po závazku/kontra/rekontra
+ukončují dražbu. Po jejím konci nelze použít dražební desku; pro otázky
+k výslednému závazku použij typ `choice`. Stav her se uchovává a zobrazuje,
+na legalitu hlášek nemá vliv.
+
+Všech 172 původních otázek zůstává beze změny: `sequence` je zkrácený zápis
+hlášek partnerů, začínající N. Adaptér za každou hlášku vloží pas soupeře;
+odpovídá další partner. Pozice N/S jsou u starých úloh konvence zobrazení,
+nikoli dodatečně zjištěná původní orientace. ID, správné odpovědi, systémové
+dohody a uložený postup se nemění. Zkrácený zápis nepoužívej pro zásahy ani
+kontra: v editoru jej převeď tlačítkem na plnou dražbu a doplň skutečné hlášky.
+Převod zachová hlášky a předpokládané pasy; zpětný ztrátový převod editor nenabízí.
+Při použití `auction` musí být `sequence` prázdné, aby se nerozcházely dva zdroje.
+
+Editor umožňuje změnit rozdávajícího, hráče a stav her, upravit každou hlášku
+a přidat či odebrat poslední hlášku. Změna rozdávajícího přepočítá pozice
+všech hlášek; odpovídajícího hráče zvol samostatně. Chyby lze uložit do konceptu,
+ale blokují publikování i načtení aktivní úlohy do tréninku. Stejný modul
+`app/auction.ts` kontroluje historii, správnou odpověď i dostupnost tlačítek.
+`isHigherBid` zůstává pomocnou kontrolou pořadí závazků, nikoli legality dražby.
+
+Pravidla vycházejí z [WBF Laws of Duplicate Bridge, pravidla 17–19 a 22](https://www.worldbridge.org/wp-content/uploads/2020/02/2017LawsofDuplicateBridge-gender_neutral_1.pdf).
+Trenažér vyžaduje legální průběh dražby; neřeší nápravy nepravidelností
+rozhodčím, alertování ani omezení konkrétních konvenčních dohod.

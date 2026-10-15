@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Download, FileUp, Plus, Save, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { contentSchema, publicationIssues, publishedContent, validateQuestion } from "./content-validation";
+import { AuctionEditor } from "./auction-editor";
 import { QuestionPreview } from "./question-card";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { ChoiceOption, TrainerContent, TrainerLevel, TrainerQuestion, TrainerSystem } from "./types";
@@ -13,7 +14,7 @@ type Props = { open: boolean; onOpenChange: (open: boolean) => void; content: Tr
 
 const makeId = (prefix: string) => `${prefix}-${globalThis.crypto?.randomUUID?.() || Date.now()}`;
 const newLevel = (): TrainerLevel => ({ id: makeId("level"), title: "Nová kapitola", description: "", passingPercent: 80, status: "draft", questions: [] });
-const newQuestion = (): TrainerQuestion => ({ id: makeId("question"), type: "bid_box", sequence: [], hand: { s: "", h: "", d: "", c: "" }, prompt: "Nová otázka", correctBid: "PASS", rationale: "" });
+const newQuestion = (): TrainerQuestion => ({ id: makeId("question"), type: "bid_box", sequence: [], auction: { dealer: "N", player: "N", vulnerability: "none", calls: [] }, hand: { s: "", h: "", d: "", c: "" }, prompt: "Nová otázka", correctBid: "PASS", rationale: "" });
 
 export default function AdminPanel({ open, onOpenChange, content }: Props) {
   const { enabled: backend, state: account } = useAccount();
@@ -226,7 +227,7 @@ export default function AdminPanel({ open, onOpenChange, content }: Props) {
               <div className="editor-heading compact"><strong>Úloha {questionIndex + 1}</strong><div><button onClick={()=>moveQuestion(-1)} disabled={questionIndex===0} aria-label="Posunout úlohu nahoru"><ArrowUp size={16}/></button><button onClick={()=>moveQuestion(1)} disabled={questionIndex===editingQuestions.length-1} aria-label="Posunout úlohu dolů"><ArrowDown size={16}/></button><button className="danger" onClick={deleteQuestion} aria-label="Smazat úlohu"><Trash2 size={16}/></button></div></div>
               <label>Typ úlohy<select value={question.type} onChange={(event)=>{ const type=event.target.value as TrainerQuestion["type"]; patchQuestion({ type, options:type==="choice" ? question.options || [{id:makeId("option"),text:"Správná možnost",correct:true},{id:makeId("option"),text:"Nesprávná možnost",correct:false}] : undefined, correctBid:type==="bid_box" ? question.correctBid || "PASS" : undefined }); }}><option value="bid_box">Dražební deska</option><option value="choice">Výběr z možností</option></select></label>
               <label>Otázka<textarea aria-label="Otázka" rows={2} value={question.prompt} onChange={(event)=>patchQuestion({prompt:event.target.value})}/></label>
-              <label>Předchozí dražba <small>(odděluj čárkou)</small><input value={question.sequence.join(",")} onChange={(event)=>patchQuestion({sequence:event.target.value.trim() ? event.target.value.split(",") : []})}/></label>
+              <AuctionEditor question={question} onChange={patchQuestion}/>
               <label className="chapter-status"><Checkbox checked={!!question.hand} onCheckedChange={(checked) => patchQuestion({ hand: checked ? { s: "", h: "", d: "", c: "" } : undefined })}/> Zobrazit ruku hráče</label>
               {question.hand && <div className="hand-inputs"><span>Ruka hráče</span>{(["s","h","d","c"] as const).map((suit)=><label key={suit}><b className={`suit-${suit}`}>{suit==="s"?"♠":suit==="h"?"♥":suit==="d"?"♦":"♣"}</b><input value={question.hand?.[suit] || ""} onChange={(event)=>patchQuestion({hand:{s:question.hand?.s||"",h:question.hand?.h||"",d:question.hand?.d||"",c:question.hand?.c||"",[suit]:event.target.value.toUpperCase()}})}/></label>)}</div>}
               {question.type === "bid_box" ? <label>Správná hláška<input value={question.correctBid || ""} onChange={(event)=>patchQuestion({correctBid:event.target.value.toUpperCase()})}/></label> : <div className="option-editor"><div className="option-heading"><span>Možnosti odpovědí</span><button onClick={addOption}><Plus size={14}/> Přidat možnost</button></div>{(question.options||[]).map((option)=><div key={option.id} className="option-row"><input type="radio" name="correct-option" checked={option.correct} onChange={()=>markCorrect(option.id)} aria-label="Označit jako správnou"/><input value={option.text} onChange={(event)=>patchOption(option.id,{text:event.target.value})}/><button onClick={()=>deleteOption(option.id)} aria-label="Smazat možnost"><Trash2 size={15}/></button></div>)}</div>}

@@ -38,10 +38,12 @@ v pravidlech je přehled zkratek. Podklady a hranice pokrytí popisuje SOURCES.m
 1. **Přesné dohody pokročilé Lepší levné 2/1.** Dodané osnovy určují témata,
    ale nikoli úplnou kartu. Pro další konkrétní sledy je potřeba systémová karta
    akademie, zejména dohody po 1M a detaily forsingového 1NT.
-2. **Plná dražba pro soutěžní lekce.** Současný seznam hlášek vynechává pasy
-   soupeřů. Kapitoly se zásahy, kontry a rekontry potřebují čtyři pozice,
-   označení soupeřových hlášek a stav her. Nová kontrola vzestupnosti tuto
-   úplnou validaci nenahrazuje.
+2. **Plná dražba pro soutěžní lekce – implementováno.** Volitelný `auction`
+   uchovává rozdávajícího, hráče, stav her a všechny hlášky s pozicemi N/E/S/W.
+   Sdílená kontrola ověřuje střídání, partnerství, kontra/rekontra i konec dražby.
+   Editor, náhled a trénink používají stejná pravidla. Původní `sequence` se
+   při čtení rozvine s pasy soupeřů; 172 otázek a systémové karty se nemění.
+   Formát a pravidla převodu popisuje README.
 3. **Rozlišit trénink a zkoušení.** Volitelný test bez průběžného odhalování
    správných odpovědí a s rozborem až na konci by lépe ověřoval samostatné znalosti.
 4. **Záloha a přenos postupu.** Export/import postupu mezi zařízeními by navázal
@@ -66,3 +68,17 @@ Ověřeno sestavením, 21 testy, prohlížečovými regresními kontrolami a
 integračním testem Workeru s izolovanou D1. Kontroly zahrnují neprůhledné
 pozadí na desktopu/mobilu, hledání, filtry, neshodná i platná hesla a
 standardní registraci/přihlášení/správu rolí.
+
+## Ověření dražby čtyř hráčů
+
+- `pnpm test`: 46 úspěšných testů. Nové scénáře pokrývají čtyři rozdávající,
+  zásahy, kontra a rekontra včetně dvou mezilehlých pasů, obnovení stavu po
+  vyšším závazku, 7NT, konec dražby, hlavního hráče, neplatné pozice a hlášky,
+  import/export a samostatnou testovou banku.
+- Regrese všech 172 původních úloh: původní data se nemění, správné odpovědi
+  zůstávají legální. Prochází také převod celé sady na explicitní čtyřhráčový zápis.
+- `pnpm test:browser`: původní regresní kontroly, lekce a testy pěti systémů,
+  mobilní tabulka čtyř pozic, nabídka kontra/rekontra, uložení nové dražby,
+  blokování publikace nelegální odpovědi a vypnutí desky po ukončení dražby.
+- `pnpm build` a `pnpm check:worker`: kontrola typů, publikovaného obsahu,
+  sestavení statického webu a kompatibilita serverové validační logiky.

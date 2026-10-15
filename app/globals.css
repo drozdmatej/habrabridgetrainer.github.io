@@ -118,3 +118,17 @@ a.nav-button { text-decoration: none; }
 .smart-practice { grid-column:1/-1; border-top:1px solid var(--line); padding-top:18px; }
 .smart-practice h3 { font-family:Georgia,serif; font-size:22px; margin:0; font-weight:500; }
 .sync-status { overflow-wrap:anywhere; }
+
+.auction { background:var(--paper); border:1px solid var(--line); padding:12px; border-radius:10px; margin-bottom:18px; }
+.auction p,.auction > small { color:var(--muted); font-size:12px; }
+.auction table { width:100%; table-layout:fixed; border-collapse:collapse; text-align:center; }
+.auction caption { text-align:left; font-weight:700; padding:6px 0 12px; }
+.auction th,.auction td { padding:8px 2px; border:1px solid var(--line); }
+.auction th small { display:block; font-size:10px; font-weight:400; }
+.auction td[aria-current] { background:var(--white); outline:2px solid currentColor; outline-offset:-2px; font-size:12px; }
+.auction-editor { min-width:0; margin:0; padding:12px; border:1px solid var(--line); border-radius:10px; }
+.auction-editor p,.auction-editor > small { font-size:12px; }
+.auction-actions { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+
+.auction-actions button { border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:var(--white); color:var(--ink); cursor:pointer; }
+.auction-actions button:disabled { opacity:.45; cursor:default; }

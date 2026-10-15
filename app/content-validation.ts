@@ -1,21 +1,18 @@
 import { z } from "zod";
 import type { TrainerContent, TrainerLevel, TrainerQuestion } from "./types";
 
-// English S always means spades. Czech hearts must be H or ♥ (not ambiguous S).
-export function normalizeBid(input: string): string {
-  const value = input.trim().toUpperCase().replace(/\s+/g, "");
-  const special: Record<string, string> = { PAS: "PASS", PASS: "PASS", X: "X", KONTRA: "X", XX: "XX", REKONTRA: "XX" };
-  if (special[value]) return special[value];
-  const match = value.match(/^([1-7])(NT|BT|[CDHSTKP♣♦♥♠])$/);
-  if (!match) return "";
-  const aliases: Record<string, string> = { T: "C", K: "D", P: "S", BT: "NT", "♣": "C", "♦": "D", "♥": "H", "♠": "S" };
-  return match[1] + (aliases[match[2]] || match[2]);
-}
+import { auctionState, bidRank, normalizeBid, questionAuction, questionCallError } from "./auction.ts";
+export { bidRank, normalizeBid } from "./auction.ts";
 
 const id = z.string().trim().min(1).max(200).refine(value => !Object.hasOwn(Object.prototype, value) && value !== "prototype", "Toto ID je vyhrazené; zvol jiné.");
 const text = z.string().max(10000);
 const questionArray = z.array(z.object({
         id, type: z.enum(["bid_box", "choice"]), sequence: z.array(text).max(200),
+        auction: z.object({
+          dealer: z.enum(["N", "E", "S", "W"]), player: z.enum(["N", "E", "S", "W"]),
+          vulnerability: z.enum(["none", "NS", "EW", "both"]),
+          calls: z.array(z.object({ seat: z.enum(["N", "E", "S", "W"]), bid: text })).max(512),
+        }).optional(),
         hand: z.object({ s: text, h: text, d: text, c: text }).optional(),
         prompt: text, correctBid: text.optional(), rationale: text,
         options: z.array(z.object({ id, text, correct: z.boolean() })).max(20).optional(),
@@ -58,16 +55,15 @@ export function validateQuestion(question: TrainerQuestion): string[] {
   const errors: string[] = [];
   if (!question.prompt.trim()) errors.push("Doplň text otázky.");
   if (!question.rationale.trim()) errors.push("Doplň vysvětlení odpovědi.");
-  if (question.sequence.some((bid) => !normalizeBid(bid))) errors.push("Předchozí dražba obsahuje neplatnou hlášku.");
-  let highest = -1;
-  for (const bid of question.sequence) {
-    const rank = bidRank(bid);
-    if (rank === null) continue;
-    if (rank <= highest) { errors.push("Závazky v předchozí dražbě musí postupovat vzestupně."); break; }
-    highest = rank;
+  if (question.auction && question.sequence.length) errors.push("U plné dražby vyprázdni zkrácenou sekvenci; nelze použít oba zápisy současně.");
+  const auction = questionAuction(question);
+  const state = auctionState(auction);
+  errors.push(...state.errors);
+  if (!state.errors.length && !state.ended && state.next !== auction.player) errors.push(`Na řadě je ${state.next}, ale odpovídající hráč je ${auction.player}.`);
+  if (question.type === "bid_box") {
+    const error = questionCallError(question, question.correctBid || "");
+    if (error) errors.push(`Správná hláška: ${error}`);
   }
-  if (question.type === "bid_box" && !normalizeBid(question.correctBid || "")) errors.push("Doplň platnou správnou hlášku (1♣–7NT, PASS, X nebo XX).");
-  if (question.type === "bid_box" && !isHigherBid(question.correctBid || "", question.sequence)) errors.push("Správná hláška musí být vyšší než předchozí závazek.");
   if (question.type === "choice") {
     const options = question.options || [];
     if (options.length < 2) errors.push("Doplň alespoň dvě možnosti odpovědi.");
@@ -91,14 +87,10 @@ export function validateQuestion(question: TrainerQuestion): string[] {
   return errors;
 }
 
-export function bidRank(value: string): number | null {
-  const match = normalizeBid(value).match(/^([1-7])(C|D|H|S|NT)$/);
-  return match ? (Number(match[1]) - 1) * 5 + ["C", "D", "H", "S", "NT"].indexOf(match[2]) : null;
-}
-
+// Contract ordering only; UI and answer validation must use questionCallError.
 export function isHigherBid(value: string, sequence: string[]): boolean {
   const rank = bidRank(value);
-  return rank === null || sequence.every(bid => { const previous = bidRank(bid); return previous === null || rank > previous; });
+  return !!normalizeBid(value) && (rank === null || sequence.every(bid => { const previous = bidRank(bid); return previous === null || rank > previous; }));
 }
 
 export function testPool(level: TrainerLevel): TrainerQuestion[] { return level.test?.source === "separate" ? level.test.questions || [] : level.questions; }
